@@ -13,7 +13,7 @@
 
 ---
 
-**A full-stack input library for Roblox. IAS-first, Promise-based, and cross-platform -- part of the [Material Develop](https://github.com/mkl48/Material-Develop) suite by Plinko Labs.**
+**A full-stack input library for Roblox. IAS-first, Promise-based, and cross-platform -- part of the [Material Develop](https://github.com/mkl48/Material-Develop) suite.**
 
 </div>
 
