@@ -3,30 +3,29 @@
 -- Plinko Labs
 
 type ContextOptions = {
-	Priority: number?,
-	Sink: boolean?,
+	Priority:  number?,
+	Sink:      boolean?,
 	Exclusive: boolean?,
 }
 
 type ContextEntry = {
-	Name: string,
+	Name:     string,
 	Priority: number,
-	Sink: boolean,
+	Sink:     boolean,
 }
 
 local Context = {}
 
 local _stack: { ContextEntry } = {}
 local _callbacks: {
-	Push: { (name: string) -> () },
-	Pop: { (name: string) -> () },
+	Push:    { (name: string) -> () },
+	Pop:     { (name: string) -> () },
 	Changed: { (stack: { string }) -> () },
-} =
-	{
-		Push = {},
-		Pop = {},
-		Changed = {},
-	}
+} = {
+	Push    = {},
+	Pop     = {},
+	Changed = {},
+}
 
 local function _stackNames(): { string }
 	local names = {}
@@ -59,15 +58,13 @@ function Context.Push(name: string, options: ContextOptions?)
 	end
 
 	for _, entry in _stack do
-		if entry.Name == name then
-			return
-		end
+		if entry.Name == name then return end
 	end
 
 	table.insert(_stack, {
-		Name = name,
+		Name     = name,
 		Priority = opts.Priority or 100,
-		Sink = opts.Sink or false,
+		Sink     = opts.Sink or false,
 	})
 
 	_sortStack()
@@ -111,9 +108,7 @@ end
 
 function Context.Has(name: string): boolean
 	for _, entry in _stack do
-		if entry.Name == name then
-			return true
-		end
+		if entry.Name == name then return true end
 	end
 	return false
 end
@@ -153,13 +148,9 @@ function Context.Restore(snapshot: { ContextEntry })
 end
 
 function Context.IsActive(contexts: { string }?): boolean
-	if not contexts or #contexts == 0 then
-		return true
-	end
+	if not contexts or #contexts == 0 then return true end
 	for _, name in contexts do
-		if Context.Has(name) then
-			return true
-		end
+		if Context.Has(name) then return true end
 	end
 	return false
 end
@@ -169,9 +160,7 @@ function Context.OnPush(name: string, cb: (name: string) -> ()): () -> ()
 	table.insert(_callbacks.Push, cb)
 	return function()
 		local i = table.find(_callbacks.Push, cb)
-		if i then
-			table.remove(_callbacks.Push, i)
-		end
+		if i then table.remove(_callbacks.Push, i) end
 	end
 end
 
@@ -180,9 +169,7 @@ function Context.OnPop(name: string, cb: (name: string) -> ()): () -> ()
 	table.insert(_callbacks.Pop, cb)
 	return function()
 		local i = table.find(_callbacks.Pop, cb)
-		if i then
-			table.remove(_callbacks.Pop, i)
-		end
+		if i then table.remove(_callbacks.Pop, i) end
 	end
 end
 
@@ -191,9 +178,7 @@ function Context.OnChanged(cb: (stack: { string }) -> ()): () -> ()
 	table.insert(_callbacks.Changed, cb)
 	return function()
 		local i = table.find(_callbacks.Changed, cb)
-		if i then
-			table.remove(_callbacks.Changed, i)
-		end
+		if i then table.remove(_callbacks.Changed, i) end
 	end
 end
 

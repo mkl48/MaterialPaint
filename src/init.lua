@@ -2,14 +2,14 @@
 -- init.lua
 -- Plinko Labs
 
-local Enums = require(script.Enums)
+local Enums    = require(script.Enums)
 local Platform = require(script.Platform)
-local Context = require(script.Context)
+local Context  = require(script.Context)
 local Registry = require(script.Registry)
 
 local MaterialPaint = {}
 
-MaterialPaint.Enums = Enums
+MaterialPaint.Enums    = Enums
 MaterialPaint.Platform = Platform
 
 function MaterialPaint.Define(name: string, config: any)
