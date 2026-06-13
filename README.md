@@ -1,15 +1,19 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/mkl48/MaterialPaint/master/assets/banner.png" alt="MaterialPaint" width="100%" />
-  
-  <br />
 
-  [![Version](https://img.shields.io/github/v/release/mkl48/MaterialPaint?color=6C3EF4&label=version)](https://github.com/mkl48/MaterialPaint/releases)
-  [![License](https://img.shields.io/github/license/mkl48/MaterialPaint?color=6C3EF4)](LICENSE)
-  [![Wally](https://img.shields.io/badge/wally-Ker%2FMaterialPaint-6C3EF4)](https://wally.run/package/Ker/materialpaint)
-  [![Plinko Labs](https://img.shields.io/badge/by-Plinko%20Labs-6C3EF4)](https://github.com/mkl48)
+<br />
+<br />
 
-  **Full-stack input library for Roblox.**  
-  IAS-first. Promise-based. Cross-platform.
+# MaterialPaint
+
+<img src="https://img.shields.io/badge/MaterialPaint-v0.1.0-6C3EF4?style=for-the-badge&logoColor=white" alt="version" />
+<img src="https://img.shields.io/badge/Luau-Roblox-00A2FF?style=for-the-badge&logoColor=white" alt="luau" />
+<img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="license" />
+<img src="https://img.shields.io/badge/Status-In%20Development-f59e0b?style=for-the-badge" alt="status" />
+<img src="https://img.shields.io/badge/Plinko%20Labs-Built%20By-e11d48?style=for-the-badge" alt="plinko labs" />
+
+---
+
+**A full-stack input library for Roblox. IAS-first, Promise-based, and cross-platform -- part of the [Material Develop](https://github.com/mkl48/Material-Develop) suite by Plinko Labs.**
 
 </div>
 
@@ -17,9 +21,9 @@
 
 ## Overview
 
-MaterialPaint is a full-stack input library built for Roblox game developers. It wraps the InputActionService backend behind a clean, OOP API — giving you named action handles, a Promise-based interaction model, a context stack, platform detection, and cross-platform support out of the box.
+Input on Roblox is a mess. You end up with `InputBegan` walls, scattered booleans, no priority system, and zero structure once your game gets complex. MaterialPaint fixes that.
 
-Part of the [Material Develop](https://github.com/mkl48) suite by Plinko Labs.
+You define named actions, get a handle back, and interact entirely through a chainable Promise-based API. The InputActionService does the heavy lifting under the hood -- you never touch it directly.
 
 ```lua
 local MP = require(game.ReplicatedStorage.Packages.MaterialPaint)
@@ -42,14 +46,14 @@ MP.PushContext("Gameplay")
 
 ## Features
 
-- **IAS-first** — real `InputAction`, `InputContext`, and `InputBinding` instances under the hood, with CAS and UIS available via `Driver` override
-- **Promise-based** — `:Next()` returns a chainable connection; `:Once()` for one-shots, `:Destroy()` to clean up
-- **Context stack** — push and pop named contexts; actions only fire when their context is active
-- **Cross-platform** — per-action platform filters, reactive `Platform.Get()`, `IsConsole()`, `IsMobile()`, `IsComputer()`
-- **Action modes** — Button, Axis, Combo, Hold, Charge, DoubleTap, Mash, LongPress, Gesture, Shortcut
-- **Full enums** — `Enums.State`, `Enums.Mode`, `Enums.Platform`, `Enums.Poll`, `Enums.Driver`
-- **Fork & Merge** — clone actions with overrides, merge multiple actions into one stream
-- **Flat API** — no sub-namespaces, everything lives on `MaterialPaint` directly
+- **IAS-first** -- real `InputAction`, `InputContext`, and `InputBinding` instances under the hood, with CAS and UIS available via a `Driver` override
+- **Promise-based** -- `:Next()` returns a chainable connection; `:Once()` for one-shots, `:Destroy()` to clean up
+- **Context stack** -- push and pop named contexts; actions only fire when their context is active
+- **Cross-platform** -- per-action platform filters, reactive `Platform.Get()`, `IsConsole()`, `IsMobile()`, `IsComputer()`
+- **Action modes** -- Button, Axis, Combo, Hold, Charge, DoubleTap, Mash, LongPress, Gesture, Shortcut
+- **Full enums** -- `Enums.State`, `Enums.Mode`, `Enums.Platform`, `Enums.Poll`, `Enums.Driver`
+- **Fork and Merge** -- clone actions with overrides, merge multiple actions into one stream
+- **Flat API** -- no sub-namespaces, everything lives on `MaterialPaint` directly
 
 ---
 
@@ -72,7 +76,7 @@ wally install
 
 ### Manual
 
-Copy the `MaterialPaint` ModuleScript into `ReplicatedStorage`. MaterialPaint is a **client-only** library — never require it from a server Script.
+Copy the `MaterialPaint` ModuleScript into `ReplicatedStorage`. MaterialPaint is a **client-only** library -- never require it from a server Script.
 
 ---
 
@@ -82,7 +86,6 @@ Copy the `MaterialPaint` ModuleScript into `ReplicatedStorage`. MaterialPaint is
 local MP = require(game.ReplicatedStorage.Packages.MaterialPaint)
 local Enums = MP.Enums
 
--- Define actions
 local Jump = MP.Define("Jump", {
     Bindings = { Enum.KeyCode.Space, Enum.KeyCode.ButtonA },
     Contexts = { "Gameplay" },
@@ -101,7 +104,6 @@ local Look = MP.Define("Look", {
     Mode     = Enums.Mode.Axis,
 })
 
--- Listen
 Jump:Next(Enums.State.Pressed):Then(function(event)
     event:Consume()
     character:Jump()
@@ -115,7 +117,6 @@ Look:Next(Enums.State.Moved):Then(function(event)
     camera:ApplyDelta(event.Delta)
 end)
 
--- Activate
 MP.PushContext("Gameplay")
 ```
 
@@ -126,7 +127,7 @@ MP.PushContext("Gameplay")
 ### MaterialPaint
 
 | Function | Description |
-| --- | --- |
+| -- | -- |
 | `Define(name, config)` | Register an action, returns a handle |
 | `Fetch(name)` | Retrieve a handle by name, returns nil if not found |
 | `Fork(name, newName, overrides?)` | Clone an action with optional config overrides |
@@ -136,26 +137,26 @@ MP.PushContext("Gameplay")
 | `Clear()` | Destroy and unregister all actions |
 | `GetByTag(tag)` | Get all handles with a matching tag |
 | `PushContext(name, options?)` | Push a context onto the stack |
-| `PopContext(name?)` | Pop a context by name or pop the top |
+| `PopContext(name?)` | Pop a context by name, or pop the top |
 | `PeekContext()` | Return the top context name |
-| `HasContext(name)` | Check if a context is active |
+| `HasContext(name)` | Check if a context is currently active |
 | `ContextStack()` | Return the full context stack |
 | `ClearContext()` | Pop all contexts |
 | `SnapshotContext()` | Save the current context stack |
 | `RestoreContext(snapshot)` | Restore a saved context stack |
 | `OnContextPush(name, cb)` | Fire a callback when a context is pushed |
 | `OnContextPop(name, cb)` | Fire a callback when a context is popped |
-| `OnContextChanged(cb)` | Fire a callback when the stack changes |
+| `OnContextChanged(cb)` | Fire a callback whenever the stack changes |
 
 ### Action Handle
 
 | Method | Description |
-| --- | --- |
+| -- | -- |
 | `:Next(state)` | Returns a `Connection` that fires on the given state |
 | `:HoldFor(seconds)` | Returns a `Connection` that resolves after being held |
 | `:Poll()` | Returns the current `Enums.Poll` state |
 | `:IsHeld()` | Returns true if the action is currently held |
-| `:HeldDuration()` | Returns seconds the action has been held |
+| `:HeldDuration()` | Returns how long the action has been held in seconds |
 | `:Enable()` | Re-enable a disabled action |
 | `:Disable()` | Suppress an action without unregistering it |
 | `:Destroy()` | Teardown the action and all its listeners |
@@ -163,7 +164,7 @@ MP.PushContext("Gameplay")
 ### Connection
 
 | Method | Description |
-| --- | --- |
+| -- | -- |
 | `:Then(cb)` | Chain a callback, returns self |
 | `:Catch(cb)` | Handle errors, returns self |
 | `:Once()` | Self-disconnect after first fire, returns self |
@@ -188,12 +189,12 @@ KB:Destroy()
 ### Platform
 
 | Method | Description |
-| --- | --- |
-| `MP.Platform.Get()` | Returns current `Enums.Platform` value |
+| -- | -- |
+| `MP.Platform.Get()` | Returns the current `Enums.Platform` value |
 | `MP.Platform.IsConsole()` | Returns true on console |
 | `MP.Platform.IsMobile()` | Returns true on mobile |
 | `MP.Platform.IsComputer()` | Returns true on PC |
-| `MP.Platform.OnChanged(cb)` | Fires callback on platform switch, returns disconnect |
+| `MP.Platform.OnChanged(cb)` | Fires on platform switch, returns a disconnect |
 
 ### Enums
 
@@ -219,7 +220,7 @@ MP.Enums.Driver   -- IAS, CAS, UIS
 ### Charge Attack
 
 ```lua
-local KB = Attack:Next(Enums.State.Pressed):Then(function()
+Attack:Next(Enums.State.Pressed):Then(function()
     return Attack:HoldFor(0.5)
 end):Then(function()
     Combat:HeavyAttack()
@@ -244,8 +245,8 @@ MP.PopContext("Menu")
 
 ```lua
 local Sprint = MP.Define("Sprint", {
-    Contexts  = { "Gameplay" },
-    Bindings  = {
+    Contexts = { "Gameplay" },
+    Bindings = {
         { KeyCode = Enum.KeyCode.LeftShift, Platforms = { "Computer" } },
         { KeyCode = Enum.KeyCode.ButtonL3,  Platforms = { "Console"  } },
     },
@@ -281,23 +282,23 @@ end)
 ## ActionConfig
 
 | Field | Type | Default | Description |
-| --- | --- | --- | --- |
+| -- | -- | -- | -- |
 | `Bindings` | `{ KeyCode \| UserInputType }` | required | Input sources |
 | `Contexts` | `{ string }?` | nil | Active contexts, omit to always fire |
 | `Driver` | `Enums.Driver?` | IAS | Backend driver |
 | `Mode` | `Enums.Mode?` | Button | Action mode |
 | `Sequence` | `{ KeyCode \| UserInputType }?` | nil | Combo steps |
 | `Window` | `number?` | 0.4 | Combo timing window in seconds |
-| `HoldTime` | `number?` | 0.5 | Seconds for Hold/LongPress/Charge |
-| `MashThreshold` | `number?` | 5 | Press count for Mash mode |
+| `HoldTime` | `number?` | 0.5 | Seconds for Hold, LongPress, and Charge modes |
+| `MashThreshold` | `number?` | 5 | Press count threshold for Mash mode |
 | `Deadzone` | `number?` | 0.0 | Axis deadzone magnitude |
-| `RepeatInterval` | `number?` | nil | Held re-fire interval |
+| `RepeatInterval` | `number?` | nil | Held re-fire interval in seconds |
 | `Priority` | `number?` | 100 | IAS/CAS context priority |
 | `Platforms` | `{ Enums.Platform }?` | nil | Platform filter |
-| `Tags` | `{ string }?` | nil | Tag grouping |
+| `Tags` | `{ string }?` | nil | Tag grouping for GetByTag |
 
 ---
 
 ## License
 
-MIT — built by [Plinko Labs](https://github.com/mkl48)
+MIT -- built by [Plinko Labs](https://github.com/mkl48)
