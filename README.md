@@ -9,7 +9,6 @@
 <img src="https://img.shields.io/badge/Luau-Roblox-00A2FF?style=for-the-badge&logoColor=white" alt="luau" />
 <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="license" />
 <img src="https://img.shields.io/badge/Status-In%20Development-f59e0b?style=for-the-badge" alt="status" />
-<img src="https://img.shields.io/badge/Plinko%20Labs-Built%20By-e11d48?style=for-the-badge" alt="plinko labs" />
 
 ---
 
