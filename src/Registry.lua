@@ -2,8 +2,9 @@
 -- Registry.lua
 -- Plinko Labs
 
-local Enums  = require(script.Parent.Enums)
-local Action = require(script.Parent.Action)
+local Enums      = require(script.Parent.Enums)
+local Action     = require(script.Parent.Action)
+local Connection = require(script.Parent.Connection).Connection
 
 local Registry = {}
 
@@ -47,9 +48,6 @@ end
 function Registry.Merge(...: any)
 	local actions = { ... }
 	assert(#actions >= 2, "[MaterialPaint] Merge expects at least 2 actions")
-
-	local PromiseLib = require(script.Parent.Promise)
-	local Connection = PromiseLib.Connection
 
 	local merged = {}
 

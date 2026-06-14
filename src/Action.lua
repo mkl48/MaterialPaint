@@ -8,9 +8,7 @@ local RunService           = game:GetService("RunService")
 
 local Enums      = require(script.Parent.Enums)
 local Context    = require(script.Parent.Context)
-local PromiseLib = require(script.Parent.Promise)
-
-local Connection = PromiseLib.Connection
+local Connection = require(script.Parent.Connection).Connection
 
 local Action = {}
 Action.__index = Action
@@ -435,7 +433,7 @@ function Action:_StartLongPress(source: Enum.KeyCode | Enum.UserInputType)
 	end)
 end
 
-function Action:Next(state: Enums.State): PromiseLib.Connection
+function Action:Next(state: Enums.State): Connection
 	return Connection.new(function(fire)
 		local listeners = self._signals[state]
 		local entry     = { fire = fire }
@@ -448,9 +446,9 @@ function Action:Next(state: Enums.State): PromiseLib.Connection
 	end)
 end
 
-function Action:HoldFor(seconds: number): PromiseLib.Connection
+function Action:HoldFor(seconds: number): Connection
 	return Connection.new(function(fire)
-		local timer      = nil
+		local timer        = nil
 		local releaseEntry = nil
 
 		local entry = {
