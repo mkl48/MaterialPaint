@@ -22,11 +22,7 @@ local function _makeSignalTable()
 	})
 end
 
-local function _makeEvent(
-	source: Enum.KeyCode | Enum.UserInputType,
-	state: Enums.State,
-	extra: { [string]: any }?
-)
+local function _makeEvent(source, state, extra)
 	local event = {
 		Source   = source,
 		State    = state,
@@ -46,7 +42,23 @@ local function _makeEvent(
 	return event
 end
 
-function Action.new(name: string, config: any)
+local StateResult = {}
+StateResult.__index = StateResult
+
+function StateResult.new(value, data)
+	return setmetatable({ _value = value, _data = data }, StateResult)
+end
+
+function StateResult:With()
+	return self._data
+end
+
+local function _result(value, data)
+	if not value then return nil end
+	return StateResult.new(value, data)
+end
+
+function Action.new(name, config)
 	local self = setmetatable({}, Action)
 
 	self.Name         = name
@@ -58,25 +70,46 @@ function Action.new(name: string, config: any)
 	self._heldStart   = nil
 	self._pollState   = Enums.Poll.Idle
 
-	self._comboStep   = 0
-	self._comboTimer  = nil
+	self._activeStates   = {}
 
-	self._charging    = false
-	self._chargeConn  = nil
+	self._comboStep      = 0
+	self._comboTimer     = nil
 
-	self._mashCount   = 0
-	self._mashTimer   = nil
+	self._charging       = false
+	self._chargeConn     = nil
+	self._chargeStart    = nil
+	self._chargeProgress = 0
 
-	self._iasAction   = nil
+	self._mashCount  = 0
+	self._mashTimer  = nil
+	self._mashWindow = {}
+
+	self._doubleTapPending = false
+	self._doubleTapTimer   = nil
+	self._doubleTapTime    = nil
+
+	self._longPressTimer = nil
+	self._holdTimer      = nil
+
+	self._conflicts = {}
+
 	self._iasContext  = nil
+	self._iasAction   = nil
 	self._iasBindings = {}
+
+	self._uisConn    = nil
+	self._uisEndConn = nil
 
 	self:_Setup()
 
 	return self
 end
 
-function Action:_Fire(state: Enums.State, event: any)
+function Action:_SetState(state, active)
+	self._activeStates[state] = active or nil
+end
+
+function Action:_Fire(state, event)
 	if not self._enabled then return end
 	if not Context.IsActive(self.Config.Contexts) then return end
 
@@ -90,7 +123,7 @@ function Action:_Fire(state: Enums.State, event: any)
 	end
 end
 
-function Action:_PlatformAllowed(): boolean
+function Action:_PlatformAllowed()
 	local platforms = self.Config.Platforms
 	if not platforms or #platforms == 0 then return true end
 
@@ -105,48 +138,55 @@ function Action:_PlatformAllowed(): boolean
 end
 
 function Action:_SetupIAS()
-	local IAS = game:GetService("InputActionService") :: any
+	local actionsFolder = script.Actions
 
-	local actionType = "Bool"
-	local mode = self.Config.Mode or Enums.Mode.Button
+	local context = Instance.new("InputContext")
+	context.Name     = self.Name .. "_Context"
+	context.Priority = self.Config.Priority or 100
+	context.Sink     = self.Config.Sink or false
+	context.Enabled  = false
+	context.Parent   = actionsFolder
+	self._iasContext = context
 
-	if mode == Enums.Mode.Axis then
-		actionType = "Direction1D"
-	end
-
-	local iasAction  = IAS:CreateInputAction(self.Name, Enum.InputActionType[actionType])
-	self._iasAction  = iasAction
-
-	local iasContext = IAS:CreateInputContext(self.Name .. "_Context")
-	iasContext.Priority = self.Config.Priority or 100
-	iasContext.Sink     = self.Config.Sink or false
-	self._iasContext    = iasContext
+	local action = Instance.new("InputAction")
+	action.Name   = self.Name
+	action.Parent = context
+	self._iasAction = action
 
 	if self.Config.Bindings then
 		for _, binding in self.Config.Bindings do
-			local iasBinding = IAS:CreateInputBinding(iasAction, binding)
-			table.insert(self._iasBindings, iasBinding)
+			local b = Instance.new("InputBinding")
+			if typeof(binding) == "table" then
+				b.KeyCode = binding.KeyCode
+				if binding.Modifier then
+					b.ModifierKey = binding.Modifier
+				end
+			else
+				b.KeyCode = binding
+			end
+			b.Parent = action
+			table.insert(self._iasBindings, b)
 		end
 	end
 
-	iasContext:AddAction(iasAction)
-	iasContext:Activate()
+	context.Enabled = true
 
-	iasAction.StateChanged:Connect(function(newState, _oldState)
+	action.Pressed:Connect(function()
 		if not self:_PlatformAllowed() then return end
+		self:_HandlePressed(action)
+	end)
 
-		local source = self.Config.Bindings and self.Config.Bindings[1] or Enum.KeyCode.Unknown
+	action.Released:Connect(function()
+		if not self:_PlatformAllowed() then return end
+		self:_HandleReleased(action)
+	end)
 
-		if newState == Enum.InputActionState.Pressed then
-			self:_HandlePressed(source)
-		elseif newState == Enum.InputActionState.Released then
-			self:_HandleReleased(source)
-		elseif newState == Enum.InputActionState.Changed then
-			local event = _makeEvent(source, Enums.State.Changed, {
-				Progress = iasAction:GetState(),
-			})
-			self:_Fire(Enums.State.Changed, event)
-		end
+	action.StateChanged:Connect(function(value)
+		if not self:_PlatformAllowed() then return end
+		local event = _makeEvent(action, Enums.State.Changed, { Progress = value })
+		self:_SetState(Enums.State.Changed, true)
+		self:_Fire(Enums.State.Changed, event)
+		task.delay(0, function() self:_SetState(Enums.State.Changed, nil) end)
 	end)
 end
 
@@ -155,7 +195,8 @@ function Action:_SetupCAS()
 
 	local bindings = {}
 	for _, b in self.Config.Bindings do
-		table.insert(bindings, b)
+		local key = typeof(b) == "table" and b.KeyCode or b
+		table.insert(bindings, key)
 	end
 
 	ContextActionService:BindActionAtPriority(
@@ -178,7 +219,9 @@ function Action:_SetupCAS()
 					Delta    = inputObject.Delta,
 					Position = inputObject.Position,
 				})
+				self:_SetState(Enums.State.Changed, true)
 				self:_Fire(Enums.State.Changed, event)
+				task.delay(0, function() self:_SetState(Enums.State.Changed, nil) end)
 			end
 
 			return Enum.ContextActionResult.Pass
@@ -197,8 +240,9 @@ function Action:_SetupUIS()
 		if not self:_PlatformAllowed() then return end
 
 		for _, binding in self.Config.Bindings do
-			if input.KeyCode == binding or input.UserInputType == binding then
-				self:_HandlePressed(binding)
+			local key = typeof(binding) == "table" and binding.KeyCode or binding
+			if input.KeyCode == key or input.UserInputType == key then
+				self:_HandlePressed(key)
 				break
 			end
 		end
@@ -208,8 +252,9 @@ function Action:_SetupUIS()
 		if not self:_PlatformAllowed() then return end
 
 		for _, binding in self.Config.Bindings do
-			if input.KeyCode == binding or input.UserInputType == binding then
-				self:_HandleReleased(binding)
+			local key = typeof(binding) == "table" and binding.KeyCode or binding
+			if input.KeyCode == key or input.UserInputType == key then
+				self:_HandleReleased(key)
 				break
 			end
 		end
@@ -226,10 +271,13 @@ function Action:_Setup()
 	end
 end
 
-function Action:_HandlePressed(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_HandlePressed(source)
 	self._held      = true
 	self._heldStart = os.clock()
 	self._pollState = Enums.Poll.Active
+
+	self:_SetState(Enums.State.Pressed, true)
+	self:_SetState(Enums.State.Released, nil)
 
 	local mode = self.Config.Mode or Enums.Mode.Button
 
@@ -237,88 +285,122 @@ function Action:_HandlePressed(source: Enum.KeyCode | Enum.UserInputType)
 		local event = _makeEvent(source, Enums.State.Pressed)
 		self:_Fire(Enums.State.Pressed, event)
 		self:_StartHeldLoop(source)
+
 	elseif mode == Enums.Mode.Hold then
 		self:_StartHoldTimer(source)
+
 	elseif mode == Enums.Mode.Charge then
 		self:_StartCharge(source)
+
 	elseif mode == Enums.Mode.DoubleTap then
 		self:_HandleDoubleTap(source)
+
 	elseif mode == Enums.Mode.Mash then
 		self:_HandleMash(source)
+
 	elseif mode == Enums.Mode.Combo then
 		self:_HandleComboStep(source)
+
 	elseif mode == Enums.Mode.LongPress then
+		local event = _makeEvent(source, Enums.State.Pressed)
+		self:_Fire(Enums.State.Pressed, event)
 		self:_StartLongPress(source)
 	end
 end
 
-function Action:_HandleReleased(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_HandleReleased(source)
 	self._held      = false
 	self._heldStart = nil
 	self._pollState = Enums.Poll.Idle
+
+	self:_SetState(Enums.State.Pressed, nil)
+	self:_SetState(Enums.State.Held, nil)
+	self:_SetState(Enums.State.Released, true)
 
 	local mode  = self.Config.Mode or Enums.Mode.Button
 	local event = _makeEvent(source, Enums.State.Released)
 	self:_Fire(Enums.State.Released, event)
 
-	if mode == Enums.Mode.Hold and self._holdTimer then
-		task.cancel(self._holdTimer)
-		self._holdTimer = nil
+	if mode == Enums.Mode.Hold then
+		if self._holdTimer then
+			task.cancel(self._holdTimer)
+			self._holdTimer = nil
+			self:_SetState(Enums.State.Canceled, true)
+			local cancelEvent = _makeEvent(source, Enums.State.Canceled)
+			self:_Fire(Enums.State.Canceled, cancelEvent)
+			task.delay(0, function() self:_SetState(Enums.State.Canceled, nil) end)
+		end
 	end
 
 	if mode == Enums.Mode.Charge then
 		self:_StopCharge(source)
 	end
 
-	if mode == Enums.Mode.LongPress and self._longPressTimer then
-		task.cancel(self._longPressTimer)
-		self._longPressTimer = nil
-		local cancelEvent = _makeEvent(source, Enums.State.Canceled)
-		self:_Fire(Enums.State.Canceled, cancelEvent)
+	if mode == Enums.Mode.LongPress then
+		if self._longPressTimer then
+			task.cancel(self._longPressTimer)
+			self._longPressTimer = nil
+			self:_SetState(Enums.State.Canceled, true)
+			local cancelEvent = _makeEvent(source, Enums.State.Canceled)
+			self:_Fire(Enums.State.Canceled, cancelEvent)
+			task.delay(0, function() self:_SetState(Enums.State.Canceled, nil) end)
+		end
 	end
 end
 
-function Action:_StartHeldLoop(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_StartHeldLoop(source)
 	if not self.Config.RepeatInterval then return end
 
 	task.spawn(function()
 		while self._held do
 			task.wait(self.Config.RepeatInterval)
 			if not self._held then break end
+			self:_SetState(Enums.State.Held, true)
 			local event = _makeEvent(source, Enums.State.Held, { Held = true })
 			self:_Fire(Enums.State.Held, event)
 		end
 	end)
 end
 
-function Action:_StartHoldTimer(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_StartHoldTimer(source)
 	local holdTime = self.Config.HoldTime or 0.5
+
 	self._holdTimer = task.delay(holdTime, function()
-		if self._held then
-			self._holdTimer = nil
-			local event = _makeEvent(source, Enums.State.Triggered)
-			self:_Fire(Enums.State.Triggered, event)
-		end
+		if not self._held then return end
+		self._holdTimer = nil
+		self:_SetState(Enums.State.Triggered, true)
+		local event = _makeEvent(source, Enums.State.Triggered)
+		self:_Fire(Enums.State.Triggered, event)
+		task.delay(0, function() self:_SetState(Enums.State.Triggered, nil) end)
 	end)
 end
 
-function Action:_StartCharge(source: Enum.KeyCode | Enum.UserInputType)
-	self._charging    = true
-	self._chargeStart = os.clock()
+function Action:_StartCharge(source)
+	self._charging       = true
+	self._chargeStart    = os.clock()
+	self._chargeProgress = 0
+
+	self:_SetState(Enums.State.Charged, true)
 
 	self._chargeConn = RunService.Heartbeat:Connect(function()
 		if not self._charging then return end
+
 		local elapsed  = os.clock() - self._chargeStart
 		local holdTime = self.Config.HoldTime or 1
 		local progress = math.clamp(elapsed / holdTime, 0, 1)
-		local event    = _makeEvent(source, Enums.State.Charged, { Progress = progress })
+
+		self._chargeProgress = progress
+
+		local event = _makeEvent(source, Enums.State.Charged, { Progress = progress })
 		self:_Fire(Enums.State.Charged, event)
 	end)
 end
 
-function Action:_StopCharge(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_StopCharge(source)
 	if not self._charging then return end
 	self._charging = false
+
+	self:_SetState(Enums.State.Charged, nil)
 
 	if self._chargeConn then
 		self._chargeConn:Disconnect()
@@ -328,60 +410,92 @@ function Action:_StopCharge(source: Enum.KeyCode | Enum.UserInputType)
 	local elapsed  = os.clock() - (self._chargeStart or os.clock())
 	local holdTime = self.Config.HoldTime or 1
 	local progress = math.clamp(elapsed / holdTime, 0, 1)
-	local event    = _makeEvent(source, Enums.State.Triggered, { Progress = progress })
+
+	self._chargeProgress = progress
+	self:_SetState(Enums.State.Triggered, true)
+
+	local event = _makeEvent(source, Enums.State.Triggered, { Progress = progress })
 	self:_Fire(Enums.State.Triggered, event)
+	task.delay(0, function() self:_SetState(Enums.State.Triggered, nil) end)
 end
 
-function Action:_HandleDoubleTap(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_HandleDoubleTap(source)
 	local window = self.Config.Window or 0.3
+	local now    = os.clock()
 
-	if self._doubleTapPending then
+	if self._doubleTapPending and (now - (self._doubleTapTime or 0)) <= window then
 		self._doubleTapPending = false
+
 		if self._doubleTapTimer then
 			task.cancel(self._doubleTapTimer)
 			self._doubleTapTimer = nil
 		end
+
+		self:_SetState(Enums.State.DoubleTapped, true)
 		local event = _makeEvent(source, Enums.State.DoubleTapped)
 		self:_Fire(Enums.State.DoubleTapped, event)
+		task.delay(0, function() self:_SetState(Enums.State.DoubleTapped, nil) end)
 	else
 		self._doubleTapPending = true
-		self._doubleTapTimer   = task.delay(window, function()
+		self._doubleTapTime    = now
+
+		if self._doubleTapTimer then
+			task.cancel(self._doubleTapTimer)
+		end
+
+		self._doubleTapTimer = task.delay(window, function()
 			self._doubleTapPending = false
 			self._doubleTapTimer   = nil
+			self._doubleTapTime    = nil
 		end)
 	end
 end
 
-function Action:_HandleMash(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_HandleMash(source)
 	local window    = self.Config.Window or 1
 	local threshold = self.Config.MashThreshold or 5
+	local now       = os.clock()
 
-	self._mashCount += 1
+	local fresh = {}
+	for _, t in self._mashWindow do
+		if now - t <= window then
+			table.insert(fresh, t)
+		end
+	end
+	table.insert(fresh, now)
+	self._mashWindow = fresh
+	self._mashCount  = #fresh
 
 	if self._mashTimer then
 		task.cancel(self._mashTimer)
 	end
 
 	self._mashTimer = task.delay(window, function()
-		self._mashCount = 0
-		self._mashTimer = nil
+		self._mashWindow = {}
+		self._mashCount  = 0
+		self._mashTimer  = nil
+		self:_SetState(Enums.State.Mashed, nil)
 	end)
 
 	if self._mashCount >= threshold then
-		local count     = self._mashCount
-		self._mashCount = 0
+		local count      = self._mashCount
+		self._mashWindow = {}
+		self._mashCount  = 0
+
 		if self._mashTimer then
 			task.cancel(self._mashTimer)
 			self._mashTimer = nil
 		end
+
+		self:_SetState(Enums.State.Mashed, count)
 		local event = _makeEvent(source, Enums.State.Mashed, { Count = count })
 		self:_Fire(Enums.State.Mashed, event)
 	end
 end
 
-function Action:_HandleComboStep(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_HandleComboStep(source)
 	local sequence = self.Config.Sequence
-	if not sequence then return end
+	if not sequence or #sequence == 0 then return end
 
 	local window   = self.Config.Window or 0.4
 	local expected = sequence[self._comboStep + 1]
@@ -389,51 +503,80 @@ function Action:_HandleComboStep(source: Enum.KeyCode | Enum.UserInputType)
 
 	if not matches then
 		self._comboStep = 0
+
 		if self._comboTimer then
 			task.cancel(self._comboTimer)
 			self._comboTimer = nil
 		end
+
+		self:_SetState(Enums.State.Canceled, true)
 		local cancelEvent = _makeEvent(source, Enums.State.Canceled)
 		self:_Fire(Enums.State.Canceled, cancelEvent)
+		task.delay(0, function() self:_SetState(Enums.State.Canceled, nil) end)
+
+		if sequence[1] == source then
+			self._comboStep = 1
+			self:_SetState(Enums.State.Stepped, 1)
+			local stepEvent = _makeEvent(source, Enums.State.Stepped, { Step = 1 })
+			self:_Fire(Enums.State.Stepped, stepEvent)
+
+			self._comboTimer = task.delay(window, function()
+				self._comboStep  = 0
+				self._comboTimer = nil
+				self:_SetState(Enums.State.Stepped, nil)
+			end)
+		end
+
 		return
 	end
 
 	self._comboStep += 1
 
+	if self._comboTimer then
+		task.cancel(self._comboTimer)
+		self._comboTimer = nil
+	end
+
+	self:_SetState(Enums.State.Stepped, self._comboStep)
 	local stepEvent = _makeEvent(source, Enums.State.Stepped, { Step = self._comboStep })
 	self:_Fire(Enums.State.Stepped, stepEvent)
 
-	if self._comboTimer then
-		task.cancel(self._comboTimer)
-	end
-
 	if self._comboStep >= #sequence then
-		self._comboStep  = 0
-		self._comboTimer = nil
+		self._comboStep = 0
+		self:_SetState(Enums.State.Stepped, nil)
+		self:_SetState(Enums.State.Triggered, true)
+
 		local event = _makeEvent(source, Enums.State.Triggered)
 		self:_Fire(Enums.State.Triggered, event)
+		task.delay(0, function() self:_SetState(Enums.State.Triggered, nil) end)
 	else
 		self._comboTimer = task.delay(window, function()
 			self._comboStep  = 0
 			self._comboTimer = nil
+			self:_SetState(Enums.State.Stepped, nil)
+			self:_SetState(Enums.State.Canceled, true)
+
 			local cancelEvent = _makeEvent(source, Enums.State.Canceled)
 			self:_Fire(Enums.State.Canceled, cancelEvent)
+			task.delay(0, function() self:_SetState(Enums.State.Canceled, nil) end)
 		end)
 	end
 end
 
-function Action:_StartLongPress(source: Enum.KeyCode | Enum.UserInputType)
+function Action:_StartLongPress(source)
 	local holdTime = self.Config.HoldTime or 0.6
+
 	self._longPressTimer = task.delay(holdTime, function()
-		if self._held then
-			self._longPressTimer = nil
-			local event = _makeEvent(source, Enums.State.LongPressed)
-			self:_Fire(Enums.State.LongPressed, event)
-		end
+		if not self._held then return end
+		self._longPressTimer = nil
+
+		self:_SetState(Enums.State.LongPressed, true)
+		local event = _makeEvent(source, Enums.State.LongPressed)
+		self:_Fire(Enums.State.LongPressed, event)
 	end)
 end
 
-function Action:Next(state: Enums.State): Connection
+function Action:Next(state)
 	return Connection.new(function(fire)
 		local listeners = self._signals[state]
 		local entry     = { fire = fire }
@@ -446,12 +589,12 @@ function Action:Next(state: Enums.State): Connection
 	end)
 end
 
-function Action:HoldFor(seconds: number): Connection
+function Action:HoldFor(seconds)
 	return Connection.new(function(fire)
 		local timer        = nil
 		local releaseEntry = nil
 
-		local entry = {
+		local pressEntry = {
 			fire = function(event)
 				timer = task.delay(seconds, function()
 					if self._held then
@@ -470,11 +613,11 @@ function Action:HoldFor(seconds: number): Connection
 			end,
 		}
 
-		table.insert(self._signals[Enums.State.Pressed], entry)
+		table.insert(self._signals[Enums.State.Pressed], pressEntry)
 		table.insert(self._signals[Enums.State.Released], releaseEntry)
 
 		return function()
-			local i = table.find(self._signals[Enums.State.Pressed], entry)
+			local i = table.find(self._signals[Enums.State.Pressed], pressEntry)
 			if i then table.remove(self._signals[Enums.State.Pressed], i) end
 
 			local j = table.find(self._signals[Enums.State.Released], releaseEntry)
@@ -488,29 +631,71 @@ function Action:HoldFor(seconds: number): Connection
 	end)
 end
 
-function Action:Poll(): Enums.Poll
+function Action:Set(state)
+	local extra = nil
+
+	if state == Enums.State.Charged then
+		extra = { Progress = self._chargeProgress }
+	elseif state == Enums.State.Mashed then
+		extra = { Count = self._mashCount }
+	elseif state == Enums.State.Stepped then
+		extra = { Step = self._comboStep }
+	end
+
+	self:_SetState(state, true)
+	local event = _makeEvent(Enum.KeyCode.Unknown, state, extra)
+	self:_Fire(state, event)
+	task.delay(0, function() self:_SetState(state, nil) end)
+end
+
+function Action:Is(state)
+	local value = self._activeStates[state]
+	if not value then return nil end
+
+	local data = nil
+
+	if state == Enums.State.Held then
+		data = self:HeldDuration()
+	elseif state == Enums.State.Charged then
+		data = self._chargeProgress
+	elseif state == Enums.State.Mashed then
+		data = self._mashCount
+	elseif state == Enums.State.Stepped then
+		data = self._comboStep
+	elseif state == Enums.State.Conflicted then
+		data = self._conflicts
+	end
+
+	return _result(value, data)
+end
+
+function Action:Poll()
 	return self._pollState
 end
 
-function Action:IsHeld(): boolean
+function Action:IsHeld()
 	return self._held
 end
 
-function Action:HeldDuration(): number
+function Action:HeldDuration()
 	if not self._heldStart then return 0 end
 	return os.clock() - self._heldStart
 end
 
 function Action:Enable()
 	self._enabled = true
-	local event   = _makeEvent(Enum.KeyCode.Unknown, Enums.State.Enabled)
+	self:_SetState(Enums.State.Enabled, true)
+	local event = _makeEvent(Enum.KeyCode.Unknown, Enums.State.Enabled)
 	self:_Fire(Enums.State.Enabled, event)
+	task.delay(0, function() self:_SetState(Enums.State.Enabled, nil) end)
 end
 
 function Action:Disable()
 	self._enabled = false
-	local event   = _makeEvent(Enum.KeyCode.Unknown, Enums.State.Disabled)
+	self:_SetState(Enums.State.Disabled, true)
+	local event = _makeEvent(Enum.KeyCode.Unknown, Enums.State.Disabled)
 	self:_Fire(Enums.State.Disabled, event)
+	task.delay(0, function() self:_SetState(Enums.State.Disabled, nil) end)
 end
 
 function Action:Destroy()
@@ -518,9 +703,10 @@ function Action:Destroy()
 	self._held    = false
 
 	if self._driver == Enums.Driver.IAS then
-		if self._iasContext then self._iasContext:Deactivate() end
-		for _, b in self._iasBindings do b:Destroy() end
-		if self._iasAction then self._iasAction:Destroy() end
+		if self._iasContext then
+			self._iasContext.Enabled = false
+			self._iasContext:Destroy()
+		end
 	elseif self._driver == Enums.Driver.CAS then
 		ContextActionService:UnbindAction(self.Name)
 	elseif self._driver == Enums.Driver.UIS then
@@ -536,6 +722,7 @@ function Action:Destroy()
 	if self._chargeConn     then self._chargeConn:Disconnect()     end
 
 	table.clear(self._signals)
+	table.clear(self._activeStates)
 end
 
 return Action

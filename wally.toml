@@ -1,0 +1,11 @@
+[package]
+name = "ker/materialpaint"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+description = "A full-stack input library for Roblox. IAS-first, Promise-based, and cross-platform."
+license = "MIT"
+authors = ["mkl48"]
+include = ["default.project.json", "wally.toml", "src"]
+
+[dependencies]
