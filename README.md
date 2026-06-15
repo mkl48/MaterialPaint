@@ -66,29 +66,36 @@ Built around four principles:
 
 ## Installation
 
-### Manual (recommended for now)
+### Wally (recommended)
 
-Drop the `MaterialPaint` ModuleScript into `ReplicatedStorage`. Then require it from any `LocalScript`:
-
-```lua
-local Paint = require(game.ReplicatedStorage.MaterialPaint)
-```
-
-> **Note:** MaterialPaint is **client-only**. Never require it from a server `Script`.
-
-### Wally (coming soon)
+Add to your `wally.toml`:
 
 ```toml
 [dependencies]
 MaterialPaint = "ker/materialpaint@0.1.0"
 ```
 
-Then:
+Then run:
 
 ```sh
 wally install
 ```
 
+Require from any `LocalScript`:
+
+```lua
+local Paint = require(game.ReplicatedStorage.Packages.MaterialPaint)
+```
+
+### Manual
+
+Drop the `MaterialPaint` ModuleScript into `ReplicatedStorage` and require it directly:
+
+```lua
+local Paint = require(game.ReplicatedStorage.MaterialPaint)
+```
+
+> **Note:** MaterialPaint is **client-only**. Never require it from a server `Script`.
 ---
 
 ## Quick Start
@@ -625,7 +632,6 @@ end)
 
 ## Roadmap
 
-- Wally publish
 - Gesture mode implementation (swipe detection)
 - Conflict tracking and reporting
 - Rebinding API with persistence
@@ -638,3 +644,4 @@ end)
 ## License
 
 MIT -- built by [Plinko Labs](https://github.com/mkl48)
+
