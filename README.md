@@ -9,214 +9,439 @@
 <img src="https://img.shields.io/badge/Luau-Roblox-00A2FF?style=for-the-badge&logoColor=white" alt="luau" />
 <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="license" />
 <img src="https://img.shields.io/badge/Status-In%20Development-f59e0b?style=for-the-badge" alt="status" />
+<img src="https://img.shields.io/badge/Plinko%20Labs-Built%20By-e11d48?style=for-the-badge" alt="plinko labs" />
 
----
+<br />
+<br />
 
-**A full-stack input library for Roblox. IAS-first, Promise-based, and cross-platform -- part of the [Material Develop](https://github.com/mkl48/Material-Develop) suite.**
+**An input library built on the Input Action System -- modular, promise-driven, and cross-platform.**  
+**Part of the [Material Develop](https://github.com/mkl48/Material-Develop) suite by Plinko Labs.**
 
 </div>
 
 ---
 
-## Overview
+## Table of Contents
 
-Input on Roblox is a mess. You end up with `InputBegan` walls, scattered booleans, no priority system, and zero structure once your game gets complex. MaterialPaint fixes that.
-
-You define named actions, get a handle back, and interact entirely through a chainable Promise-based API. The InputActionService does the heavy lifting under the hood -- you never touch it directly.
-
-```lua
-local MP = require(game.ReplicatedStorage.Packages.MaterialPaint)
-local Enums = MP.Enums
-
-local Jump = MP.Define("Jump", {
-    Bindings = { Enum.KeyCode.Space, Enum.KeyCode.ButtonA },
-    Contexts = { "Gameplay" },
-})
-
-local KB = Jump:Next(Enums.State.Pressed):Then(function(event)
-    event:Consume()
-    character:Jump()
-end)
-
-MP.PushContext("Gameplay")
-```
+- [Why MaterialPaint](#why-materialpaint)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Core Concepts](#core-concepts)
+  - [Actions](#actions)
+  - [Connections](#connections)
+  - [Contexts](#contexts)
+  - [Drivers](#drivers)
+  - [States](#states)
+  - [Modes](#modes)
+- [API Reference](#api-reference)
+  - [MaterialPaint](#materialpaint-1)
+  - [Action](#action)
+  - [Connection](#connection)
+  - [Platform](#platform)
+  - [Enums](#enums)
+- [Action Modes](#action-modes)
+- [Patterns](#patterns)
+- [ActionConfig](#actionconfig)
+- [Cross-Platform](#cross-platform)
+- [Tips & Gotchas](#tips--gotchas)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
-## Features
+## Why MaterialPaint
 
-- **IAS-first** -- real `InputAction`, `InputContext`, and `InputBinding` instances under the hood, with CAS and UIS available via a `Driver` override
-- **Promise-based** -- `:Next()` returns a chainable connection; `:Once()` for one-shots, `:Destroy()` to clean up
-- **Context stack** -- push and pop named contexts; actions only fire when their context is active
-- **Cross-platform** -- per-action platform filters, reactive `Platform.Get()`, `IsConsole()`, `IsMobile()`, `IsComputer()`
-- **Action modes** -- Button, Axis, Combo, Hold, Charge, DoubleTap, Mash, LongPress, Gesture, Shortcut
-- **Full enums** -- `Enums.State`, `Enums.Mode`, `Enums.Platform`, `Enums.Poll`, `Enums.Driver`
-- **Fork and Merge** -- clone actions with overrides, merge multiple actions into one stream
-- **Flat API** -- no sub-namespaces, everything lives on `MaterialPaint` directly
+Input on Roblox is fragmented. You're juggling `InputBegan` walls, scattered boolean flags, no priority system, and zero structure once you cross more than a handful of bindings. The new Input Action System fixes the cross-platform problem but its instance-based API is awkward to drive from code.
+
+MaterialPaint is the layer on top. You define named actions in code, get back a handle, and interact with it through a chainable Promise-based API. The IAS instance tree is created, parented, and managed for you. You never touch it.
+
+Built around four principles:
+
+- **Named, composable actions** -- no string lookups, no global tables, no remembering what binding fires what
+- **Promise-first interaction** -- every input flow is a chainable connection you can store, destroy, and compose
+- **Context-aware** -- actions belong to named contexts; push and pop them as game state changes
+- **Cross-platform by default** -- IAS handles the keyboard, gamepad, touch, and mouse abstraction natively
 
 ---
 
 ## Installation
 
-### Wally (recommended)
+### Manual (recommended for now)
 
-Add to your `wally.toml`:
+Drop the `MaterialPaint` ModuleScript into `ReplicatedStorage`. Then require it from any `LocalScript`:
+
+```lua
+local Paint = require(game.ReplicatedStorage.MaterialPaint)
+```
+
+> **Note:** MaterialPaint is **client-only**. Never require it from a server `Script`.
+
+### Wally (coming soon)
 
 ```toml
 [dependencies]
-MaterialPaint = "Ker/MaterialPaint@0.1.0"
+MaterialPaint = "ker/materialpaint@0.1.0"
 ```
 
-Then run:
+Then:
 
 ```sh
 wally install
 ```
-
-### Manual
-
-Copy the `MaterialPaint` ModuleScript into `ReplicatedStorage`. MaterialPaint is a **client-only** library -- never require it from a server Script.
 
 ---
 
 ## Quick Start
 
 ```lua
-local MP = require(game.ReplicatedStorage.Packages.MaterialPaint)
-local Enums = MP.Enums
+local Paint = require(game.ReplicatedStorage.MaterialPaint)
+local Enums = Paint.Enums
 
-local Jump = MP.Define("Jump", {
+local Jump = Paint.Define("Jump", {
     Bindings = { Enum.KeyCode.Space, Enum.KeyCode.ButtonA },
     Contexts = { "Gameplay" },
 })
 
-local Dash = MP.Define("Dash", {
-    Contexts  = { "Gameplay" },
-    Mode      = Enums.Mode.Combo,
-    Sequence  = { Enum.KeyCode.W, Enum.KeyCode.W },
-    Window    = 0.3,
-})
-
-local Look = MP.Define("Look", {
-    Bindings = { Enum.UserInputType.MouseMovement },
-    Contexts = { "Gameplay" },
-    Mode     = Enums.Mode.Axis,
-})
-
 Jump:Next(Enums.State.Pressed):Then(function(event)
     event:Consume()
-    character:Jump()
+    print("Jumping!")
 end)
 
-Dash:Next(Enums.State.Triggered):Then(function()
-    character:Dash()
-end)
-
-Look:Next(Enums.State.Moved):Then(function(event)
-    camera:ApplyDelta(event.Delta)
-end)
-
-MP.PushContext("Gameplay")
+Paint.PushContext("Gameplay")
 ```
+
+That's the whole loop. `Define` to register, `:Next` to listen, `:Then` to handle, `PushContext` to activate.
 
 ---
 
-## API
+## Core Concepts
 
-### MaterialPaint
+### Actions
 
-| Function | Description |
-| -- | -- |
-| `Define(name, config)` | Register an action, returns a handle |
-| `Fetch(name)` | Retrieve a handle by name, returns nil if not found |
-| `Fork(name, newName, overrides?)` | Clone an action with optional config overrides |
-| `Merge(...)` | Combine multiple action handles into one stream |
-| `Poll(name)` | Get the current `Enums.Poll` state of an action |
-| `Remove(name)` | Destroy and unregister an action |
-| `Clear()` | Destroy and unregister all actions |
-| `GetByTag(tag)` | Get all handles with a matching tag |
-| `PushContext(name, options?)` | Push a context onto the stack |
-| `PopContext(name?)` | Pop a context by name, or pop the top |
-| `PeekContext()` | Return the top context name |
-| `HasContext(name)` | Check if a context is currently active |
-| `ContextStack()` | Return the full context stack |
-| `ClearContext()` | Pop all contexts |
-| `SnapshotContext()` | Save the current context stack |
-| `RestoreContext(snapshot)` | Restore a saved context stack |
-| `OnContextPush(name, cb)` | Fire a callback when a context is pushed |
-| `OnContextPop(name, cb)` | Fire a callback when a context is popped |
-| `OnContextChanged(cb)` | Fire a callback whenever the stack changes |
-
-### Action Handle
-
-| Method | Description |
-| -- | -- |
-| `:Next(state)` | Returns a `Connection` that fires on the given state |
-| `:HoldFor(seconds)` | Returns a `Connection` that resolves after being held |
-| `:Poll()` | Returns the current `Enums.Poll` state |
-| `:IsHeld()` | Returns true if the action is currently held |
-| `:HeldDuration()` | Returns how long the action has been held in seconds |
-| `:Enable()` | Re-enable a disabled action |
-| `:Disable()` | Suppress an action without unregistering it |
-| `:Destroy()` | Teardown the action and all its listeners |
-
-### Connection
-
-| Method | Description |
-| -- | -- |
-| `:Then(cb)` | Chain a callback, returns self |
-| `:Catch(cb)` | Handle errors, returns self |
-| `:Once()` | Self-disconnect after first fire, returns self |
-| `:Await()` | Yield until resolved |
-| `:Destroy()` | Disconnect immediately |
+An **Action** is a named gameplay mechanic -- "Jump", "Attack", "Sprint" -- bound to one or more hardware inputs. `Define` registers it and returns a handle. You hold onto that handle. It's the only way to interact with the action.
 
 ```lua
--- persistent
+local Sprint = Paint.Define("Sprint", {
+    Bindings = { Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3 },
+    Contexts = { "Gameplay" },
+})
+```
+
+Names are unique. `Define` errors if you reuse one. If you need to retrieve a handle elsewhere, use `Paint.Fetch`.
+
+```lua
+local Sprint = Paint.Fetch("Sprint")
+```
+
+### Connections
+
+Calling `:Next(state)` on an action returns a **Connection** -- a chainable handle that fires every time the action enters that state. You stack callbacks with `:Then` and `:Catch`, and you can destroy the connection at any time.
+
+```lua
 local KB = Jump:Next(Enums.State.Pressed):Then(function(event)
     character:Jump()
 end)
 
--- one-shot
-Jump:Next(Enums.State.Pressed):Then(function(event)
-    character:Jump()
-end):Once()
-
--- stored and destroyed later
+-- later, somewhere else
 KB:Destroy()
 ```
+
+Connections are persistent by default. Chain `:Once()` to self-disconnect after the first fire:
+
+```lua
+Jump:Next(Enums.State.Pressed):Then(function()
+    print("Welcome to the tutorial!")
+end):Once()
+```
+
+### Contexts
+
+A **Context** is a named string an action belongs to. Push it with `PushContext`, and any action whose `Contexts` array contains that name becomes active. Pop it and they go silent. Stack contexts for layered game state -- "Gameplay" → "Menu" → "Inventory" -- and pop them in reverse to return.
+
+```lua
+Paint.PushContext("Gameplay")     -- gameplay actions active
+openInventory()
+Paint.PushContext("Inventory")    -- inventory + gameplay actions both active
+closeInventory()
+Paint.PopContext("Inventory")     -- back to gameplay only
+```
+
+Actions with no `Contexts` always fire regardless of stack state. Useful for global hotkeys.
+
+### Drivers
+
+MaterialPaint speaks three input backends. The default is **IAS** (Input Action System) -- everything you'd want most of the time. CAS and UIS exist as escape hatches.
+
+```lua
+Paint.Define("Jump", {
+    Bindings = { Enum.KeyCode.Space },
+    Driver   = Enums.Driver.IAS,    -- default, can omit
+})
+```
+
+| Driver | When to use |
+| --- | --- |
+| `IAS` | Default. Cross-platform, instance-managed, proper priority and sinking |
+| `CAS` | Legacy CAS integration, mobile button callbacks, edge cases |
+| `UIS` | Bypass everything, raw `InputBegan` / `InputEnded` |
+
+You'll almost always want IAS.
+
+### States
+
+Every action moves between **States**. The full list lives on `Enums.State`. Some are universal (Pressed, Released), some are mode-specific (Charged, Mashed, Stepped). Every state is listenable via `:Next` and queryable via `:Is`.
+
+```lua
+Jump:Next(Enums.State.Pressed):Then(function() ... end)
+Jump:Next(Enums.State.Released):Then(function() ... end)
+
+if Jump:Is(Enums.State.Held) then
+    print("Held for:", Jump:Is(Enums.State.Held):With(), "seconds")
+end
+```
+
+`:Is(state)` returns `nil` when the state isn't active, or a `StateResult` when it is. Call `:With()` on the result to pull contextual data:
+
+| State | `:With()` returns |
+| --- | --- |
+| `Held` | Hold duration in seconds |
+| `Charged` | Charge progress 0-1 |
+| `Mashed` | Press count |
+| `Stepped` | Current combo step |
+| `Conflicted` | Conflicting action handles |
+
+### Modes
+
+A **Mode** is a behavioral preset on an action. By default actions are `Button` -- they fire `Pressed` and `Released`. Switch to `Combo` and the action only fires `Triggered` when a key sequence completes. Switch to `Charge` and you get continuous `Charged` events with a progress value. See [Action Modes](#action-modes) for the full reference.
+
+---
+
+## API Reference
+
+### MaterialPaint
+
+| Function | Description |
+| --- | --- |
+| `Paint.Define(name, config)` | Register a new action, returns a handle |
+| `Paint.Fetch(name)` | Retrieve a handle by name, returns `nil` if missing |
+| `Paint.Fork(name, newName, overrides?)` | Clone an action with optional config overrides |
+| `Paint.Merge(...)` | Combine multiple action handles into one stream |
+| `Paint.Poll(name)` | Get the current `Enums.Poll` state of an action |
+| `Paint.Remove(name)` | Destroy and unregister an action |
+| `Paint.Clear()` | Destroy and unregister every action |
+| `Paint.GetByTag(tag)` | Get all handles with a matching tag |
+| `Paint.PushContext(name, options?)` | Push a context onto the stack |
+| `Paint.PopContext(name?)` | Pop a context by name, or pop the top |
+| `Paint.PeekContext()` | Return the top context name |
+| `Paint.HasContext(name)` | Check if a context is currently active |
+| `Paint.ContextStack()` | Return the full context stack |
+| `Paint.ClearContext()` | Pop every context |
+| `Paint.SnapshotContext()` | Capture the current stack |
+| `Paint.RestoreContext(snapshot)` | Restore a saved stack |
+| `Paint.OnContextPush(name, cb)` | Fire when a context is pushed |
+| `Paint.OnContextPop(name, cb)` | Fire when a context is popped |
+| `Paint.OnContextChanged(cb)` | Fire whenever the stack changes |
+
+### Action
+
+| Method | Description |
+| --- | --- |
+| `action:Next(state)` | Returns a `Connection` that fires on the given state |
+| `action:HoldFor(seconds)` | Returns a `Connection` that fires after being held |
+| `action:Set(state)` | Force-fire a state programmatically through the full pipeline |
+| `action:Is(state)` | Returns a `StateResult` if active, `nil` otherwise |
+| `action:Poll()` | Returns the current `Enums.Poll` state |
+| `action:IsHeld()` | True if currently held |
+| `action:HeldDuration()` | Seconds held |
+| `action:Enable()` | Re-enable a disabled action |
+| `action:Disable()` | Suppress an action without unregistering it |
+| `action:Destroy()` | Teardown the action and all its listeners |
+
+### Connection
+
+| Method | Description |
+| --- | --- |
+| `conn:Then(cb)` | Chain a callback, returns `self` |
+| `conn:Catch(cb)` | Handle errors, returns `self` |
+| `conn:Once()` | Self-disconnect after first fire |
+| `conn:Await()` | Yield until resolved |
+| `conn:Destroy()` | Disconnect immediately |
 
 ### Platform
 
 | Method | Description |
-| -- | -- |
-| `MP.Platform.Get()` | Returns the current `Enums.Platform` value |
-| `MP.Platform.IsConsole()` | Returns true on console |
-| `MP.Platform.IsMobile()` | Returns true on mobile |
-| `MP.Platform.IsComputer()` | Returns true on PC |
-| `MP.Platform.OnChanged(cb)` | Fires on platform switch, returns a disconnect |
+| --- | --- |
+| `Paint.Platform.Get()` | Returns current `Enums.Platform` value |
+| `Paint.Platform.IsConsole()` | True if on console |
+| `Paint.Platform.IsMobile()` | True if on mobile |
+| `Paint.Platform.IsComputer()` | True if on PC |
+| `Paint.Platform.OnChanged(cb)` | Fires on platform switch, returns a disconnect |
 
 ### Enums
 
 ```lua
-MP.Enums.State    -- Pressed, Released, Held, Changed, Triggered, Canceled,
-                  -- Charged, Stepped, Moved, DoubleTapped, LongPressed,
-                  -- Mashed, Conflicted, Enabled, Disabled
+Paint.Enums.State    -- Pressed, Released, Held, Changed, Triggered, Canceled,
+                     -- Charged, Stepped, Moved, DoubleTapped, LongPressed,
+                     -- Mashed, Conflicted, Enabled, Disabled
 
-MP.Enums.Mode     -- Button, Axis, Combo, Shortcut, Hold, Charge,
-                  -- DoubleTap, Mash, LongPress, Gesture
+Paint.Enums.Mode     -- Button, Axis, Combo, Shortcut, Hold, Charge,
+                     -- DoubleTap, Mash, LongPress, Gesture
 
-MP.Enums.Platform -- Console, Mobile, Computer
+Paint.Enums.Platform -- Console, Mobile, Computer
 
-MP.Enums.Poll     -- Idle, Active, Held
+Paint.Enums.Poll     -- Idle, Active, Held
 
-MP.Enums.Driver   -- IAS, CAS, UIS
+Paint.Enums.Driver   -- IAS, CAS, UIS
+```
+
+---
+
+## Action Modes
+
+### Button (default)
+
+The standard mode -- fires `Pressed` and `Released`. Use for jumps, attacks, single-press abilities.
+
+```lua
+local Jump = Paint.Define("Jump", {
+    Bindings = { Enum.KeyCode.Space },
+})
+
+Jump:Next(Enums.State.Pressed):Then(function() ... end)
+Jump:Next(Enums.State.Released):Then(function() ... end)
+```
+
+### Hold
+
+Fires `Triggered` only after the binding has been held for `HoldTime` seconds. Fires `Canceled` if released early.
+
+```lua
+local Block = Paint.Define("Block", {
+    Bindings = { Enum.KeyCode.F },
+    Mode     = Enums.Mode.Hold,
+    HoldTime = 0.5,
+})
+
+Block:Next(Enums.State.Triggered):Then(function() ... end)
+Block:Next(Enums.State.Canceled):Then(function() ... end)
+```
+
+### Charge
+
+Fires `Charged` every Heartbeat with a normalized 0-1 `Progress`. On release fires `Triggered` carrying the final progress.
+
+```lua
+local Bow = Paint.Define("Bow", {
+    Bindings = { Enum.UserInputType.MouseButton1 },
+    Mode     = Enums.Mode.Charge,
+    HoldTime = 2,
+})
+
+Bow:Next(Enums.State.Charged):Then(function(event)
+    UI:SetChargeBar(event.Progress)
+end)
+
+Bow:Next(Enums.State.Triggered):Then(function(event)
+    Combat:Shoot(event.Progress)
+end)
+```
+
+### DoubleTap
+
+Fires `DoubleTapped` when two presses occur within `Window` seconds.
+
+```lua
+local Dash = Paint.Define("Dash", {
+    Bindings = { Enum.KeyCode.E },
+    Mode     = Enums.Mode.DoubleTap,
+    Window   = 0.3,
+})
+
+Dash:Next(Enums.State.DoubleTapped):Then(function() ... end)
+```
+
+### Combo
+
+Fires `Stepped` on each valid step in `Sequence`, then `Triggered` when complete. `Canceled` if the wrong key is pressed or the timer expires.
+
+```lua
+local Hadoken = Paint.Define("Hadoken", {
+    Mode     = Enums.Mode.Combo,
+    Sequence = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.J },
+    Window   = 0.4,
+})
+
+Hadoken:Next(Enums.State.Stepped):Then(function(event)
+    UI:HighlightStep(event.Step)
+end)
+
+Hadoken:Next(Enums.State.Triggered):Then(function() ... end)
+```
+
+### Mash
+
+Fires `Mashed` when the binding is pressed `MashThreshold` times within `Window` seconds. Uses a sliding window.
+
+```lua
+local Struggle = Paint.Define("Struggle", {
+    Bindings      = { Enum.KeyCode.Space },
+    Mode          = Enums.Mode.Mash,
+    MashThreshold = 10,
+    Window        = 2,
+})
+
+Struggle:Next(Enums.State.Mashed):Then(function(event)
+    print("Broke free in", event.Count, "presses")
+end)
+```
+
+### LongPress
+
+Mobile-first. Fires `LongPressed` after `HoldTime` seconds. `Canceled` if released early.
+
+```lua
+local Pickup = Paint.Define("Pickup", {
+    Bindings = { Enum.KeyCode.E },
+    Mode     = Enums.Mode.LongPress,
+    HoldTime = 0.6,
+})
+
+Pickup:Next(Enums.State.LongPressed):Then(function() ... end)
+```
+
+### Shortcut
+
+Same as Button but semantically for keyboard shortcuts like Ctrl+S. Used with the `Modifier` field in a `BindingConfig`.
+
+```lua
+local Save = Paint.Define("Save", {
+    Bindings = {
+        { KeyCode = Enum.KeyCode.S, Modifier = Enum.KeyCode.LeftControl },
+    },
+    Mode = Enums.Mode.Shortcut,
+})
+```
+
+### Axis
+
+For directional input -- mouse movement, thumbsticks. Fires `Changed` and `Moved` with `Delta` / `Position` data.
+
+```lua
+local Look = Paint.Define("Look", {
+    Bindings = { Enum.UserInputType.MouseMovement },
+    Mode     = Enums.Mode.Axis,
+})
+
+Look:Next(Enums.State.Moved):Then(function(event)
+    camera:ApplyDelta(event.Delta)
+end)
 ```
 
 ---
 
 ## Patterns
 
-### Charge Attack
+### Charge Attack with Promise Chain
 
 ```lua
 Attack:Next(Enums.State.Pressed):Then(function()
@@ -231,19 +456,19 @@ end)
 ### Context Switching
 
 ```lua
-MP.PushContext("Gameplay")
+Paint.PushContext("Gameplay")
 
 openMenu()
-MP.PushContext("Menu")
+Paint.PushContext("Menu")
 
 closeMenu()
-MP.PopContext("Menu")
+Paint.PopContext("Menu")
 ```
 
-### Platform Adaptive Bindings
+### Platform-Adaptive Bindings
 
 ```lua
-local Sprint = MP.Define("Sprint", {
+local Sprint = Paint.Define("Sprint", {
     Contexts = { "Gameplay" },
     Bindings = {
         { KeyCode = Enum.KeyCode.LeftShift, Platforms = { "Computer" } },
@@ -251,29 +476,86 @@ local Sprint = MP.Define("Sprint", {
     },
 })
 
-MP.Platform.OnChanged(function(new)
-    if new == MP.Enums.Platform.Mobile then
-        -- show touch layout
+Paint.Platform.OnChanged(function(new)
+    if new == Enums.Platform.Mobile then
+        UI:ShowTouchControls()
     end
 end)
 ```
 
 ### Fork
 
+Clone an action under a new name with overrides:
+
 ```lua
-local VehicleJump = MP.Fork("Jump", "VehicleJump", {
+local VehicleJump = Paint.Fork("Jump", "VehicleJump", {
     Contexts = { "Vehicle" },
 })
 ```
 
 ### Merge
 
+Combine multiple actions into one stream. Useful for "any attack" or "any direction" listeners:
+
 ```lua
-local AnyAttack = MP.Merge(LightAttack, HeavyAttack)
+local AnyAttack = Paint.Merge(LightAttack, HeavyAttack, Special)
 
 AnyAttack:Next(Enums.State.Pressed):Then(function(event)
-    print("attack from:", event.Source)
+    print("attack came from:", event.Source)
 end)
+```
+
+### Tutorial Gating with `:Once()`
+
+```lua
+Paint.PushContext("Tutorial")
+
+local TutorialJump = Paint.Define("TutorialJump", {
+    Bindings = { Enum.KeyCode.Space },
+    Contexts = { "Tutorial" },
+})
+
+TutorialJump:Next(Enums.State.Pressed):Then(function()
+    UI:HidePrompt()
+    Paint.PopContext("Tutorial")
+    Paint.Remove("TutorialJump")
+end):Once()
+```
+
+### Conditional State Query with `:Is():With()`
+
+```lua
+RunService.Heartbeat:Connect(function()
+    local charge = Bow:Is(Enums.State.Charged)
+    if charge then
+        local progress = charge:With()
+        UI:SetChargeFill(progress)
+    end
+end)
+```
+
+### Snapshot and Restore
+
+Save your full context state before a cutscene, restore it after:
+
+```lua
+local snap = Paint.SnapshotContext()
+Paint.ClearContext()
+Paint.PushContext("Cutscene")
+
+playCutscene():andThen(function()
+    Paint.RestoreContext(snap)
+end)
+```
+
+### Programmatic Triggers with `:Set()`
+
+Force-fire a state through the full pipeline -- useful for tutorial automation, replay systems, or testing:
+
+```lua
+Jump:Set(Enums.State.Pressed)
+task.wait(0.1)
+Jump:Set(Enums.State.Released)
 ```
 
 ---
@@ -281,20 +563,75 @@ end)
 ## ActionConfig
 
 | Field | Type | Default | Description |
-| -- | -- | -- | -- |
-| `Bindings` | `{ KeyCode \| UserInputType }` | required | Input sources |
-| `Contexts` | `{ string }?` | nil | Active contexts, omit to always fire |
-| `Driver` | `Enums.Driver?` | IAS | Backend driver |
-| `Mode` | `Enums.Mode?` | Button | Action mode |
-| `Sequence` | `{ KeyCode \| UserInputType }?` | nil | Combo steps |
-| `Window` | `number?` | 0.4 | Combo timing window in seconds |
-| `HoldTime` | `number?` | 0.5 | Seconds for Hold, LongPress, and Charge modes |
-| `MashThreshold` | `number?` | 5 | Press count threshold for Mash mode |
-| `Deadzone` | `number?` | 0.0 | Axis deadzone magnitude |
-| `RepeatInterval` | `number?` | nil | Held re-fire interval in seconds |
-| `Priority` | `number?` | 100 | IAS/CAS context priority |
-| `Platforms` | `{ Enums.Platform }?` | nil | Platform filter |
-| `Tags` | `{ string }?` | nil | Tag grouping for GetByTag |
+| --- | --- | --- | --- |
+| `Bindings` | `{ KeyCode \| UserInputType \| BindingConfig }` | required | Input sources |
+| `Contexts` | `{ string }?` | `nil` | Active contexts, omit to always fire |
+| `Driver` | `Enums.Driver?` | `IAS` | Backend driver |
+| `Mode` | `Enums.Mode?` | `Button` | Action mode |
+| `Sequence` | `{ KeyCode \| UserInputType }?` | `nil` | Combo steps |
+| `Window` | `number?` | `0.4` | Combo and DoubleTap timing window in seconds |
+| `HoldTime` | `number?` | `0.5` | Seconds for Hold, LongPress, and Charge |
+| `MashThreshold` | `number?` | `5` | Press count threshold for Mash |
+| `Deadzone` | `number?` | `0.0` | Axis deadzone magnitude |
+| `RepeatInterval` | `number?` | `nil` | Held re-fire interval |
+| `Priority` | `number?` | `100` | IAS / CAS context priority |
+| `Sink` | `boolean?` | `false` | Block lower-priority contexts (IAS) |
+| `Platforms` | `{ Enums.Platform }?` | `nil` | Platform filter |
+| `Tags` | `{ string }?` | `nil` | Tag grouping for `GetByTag` |
+
+### BindingConfig
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `KeyCode` | `KeyCode \| UserInputType` | Primary input |
+| `Modifier` | `Enum.KeyCode?` | Required held modifier (e.g. LeftControl) |
+| `Platforms` | `{ Platform }?` | Per-binding platform filter |
+
+---
+
+## Cross-Platform
+
+MaterialPaint inherits IAS's cross-platform abstraction. A binding on `Enum.KeyCode.Space` automatically also triggers on `Enum.KeyCode.ButtonA` if both are listed -- no separate listeners required. Filter per-binding with `Platforms` when behavior should differ:
+
+```lua
+local Run = Paint.Define("Run", {
+    Bindings = {
+        { KeyCode = Enum.KeyCode.LeftShift, Platforms = { "Computer" } },
+        { KeyCode = Enum.KeyCode.ButtonL3,  Platforms = { "Console"  } },
+    },
+})
+```
+
+Reactively respond to platform switches:
+
+```lua
+Paint.Platform.OnChanged(function(new, prev)
+    print("switched from", prev, "to", new)
+end)
+```
+
+---
+
+## Tips & Gotchas
+
+- **Client only.** MaterialPaint will error if required from a server `Script`. IAS doesn't exist server-side.
+- **Hold your handles.** `Define` returns a handle. Store it. If you lose the reference, use `Fetch(name)`.
+- **Names are unique.** Two `Define` calls with the same name will error. Use `Fork` to clone.
+- **Context first.** An action with `Contexts = { "Gameplay" }` won't fire until you call `Paint.PushContext("Gameplay")`. This trips everyone up at least once.
+- **Driver choice is irreversible.** You can't switch an action's driver after `Define`. Pick at definition time.
+- **`:Consume()` blocks the rest of the chain.** If you consume the event in one `:Then`, no later subscribers see it. Useful for priority. Easy to forget.
+
+---
+
+## Roadmap
+
+- Wally publish
+- Gesture mode implementation (swipe detection)
+- Conflict tracking and reporting
+- Rebinding API with persistence
+- Recording and replay
+- Visual debugger overlay
+- Touch button layout system
 
 ---
 
