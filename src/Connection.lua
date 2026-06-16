@@ -3,19 +3,20 @@
 -- Plinko Labs
 
 local Promise = require(script.Parent.Promise)
+local Types   = require(script.Parent.Types)
 
 export type Connection = {
-	Then:    (self: Connection, cb: (any) -> any) -> Connection,
-	Catch:   (self: Connection, cb: (any) -> ()) -> Connection,
+	Then:    (self: Connection, cb: (Types.InputEvent) -> any) -> Connection,
+	Catch:   (self: Connection, cb: (string) -> ()) -> Connection,
 	Once:    (self: Connection) -> Connection,
-	Await:   (self: Connection) -> (boolean, any),
+	Await:   (self: Connection) -> (boolean, Types.InputEvent?),
 	Destroy: (self: Connection) -> (),
 }
 
 local Connection = {}
 Connection.__index = Connection
 
-function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
+function Connection.new(bindFn: ((Types.InputEvent) -> ()) -> () -> ()): Connection
 	local self       = setmetatable({}, Connection)
 
 	self._cbs        = {}
@@ -24,7 +25,7 @@ function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
 	self._destroyed  = false
 	self._disconnect = nil
 
-	self._disconnect = bindFn(function(value: any)
+	self._disconnect = bindFn(function(value: Types.InputEvent)
 		if self._destroyed then return end
 
 		local ok, err = pcall(function()
@@ -47,13 +48,13 @@ function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
 	return self
 end
 
-function Connection:Then(cb: (any) -> any): Connection
+function Connection:Then(cb: (Types.InputEvent) -> any): Connection
 	assert(not self._destroyed, "[MaterialPaint] Cannot chain Then on a destroyed connection")
 	table.insert(self._cbs, cb)
 	return self
 end
 
-function Connection:Catch(cb: (any) -> ()): Connection
+function Connection:Catch(cb: (string) -> ()): Connection
 	assert(not self._destroyed, "[MaterialPaint] Cannot chain Catch on a destroyed connection")
 	table.insert(self._errCbs, cb)
 	return self
@@ -64,7 +65,7 @@ function Connection:Once(): Connection
 	return self
 end
 
-function Connection:Await(): (boolean, any)
+function Connection:Await(): (boolean, Types.InputEvent?)
 	assert(not self._destroyed, "[MaterialPaint] Cannot Await a destroyed connection")
 	local thread = coroutine.running()
 	local result, success

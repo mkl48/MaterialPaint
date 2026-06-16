@@ -6,32 +6,32 @@ local Enums = {}
 
 export type State =
 	"Pressed"
-	| "Released"
-	| "Held"
-	| "Changed"
-	| "Triggered"
-	| "Canceled"
-	| "Charged"
-	| "Stepped"
-	| "Moved"
-	| "DoubleTapped"
-	| "LongPressed"
-	| "Mashed"
-	| "Conflicted"
-	| "Enabled"
-	| "Disabled"
+| "Released"
+| "Held"
+| "Changed"
+| "Triggered"
+| "Canceled"
+| "Charged"
+| "Stepped"
+| "Moved"
+| "DoubleTapped"
+| "LongPressed"
+| "Mashed"
+| "Conflicted"
+| "Enabled"
+| "Disabled"
 
 export type Mode =
 	"Button"
-	| "Axis"
-	| "Combo"
-	| "Shortcut"
-	| "Hold"
-	| "Charge"
-	| "DoubleTap"
-	| "Mash"
-	| "LongPress"
-	| "Gesture"
+| "Axis"
+| "Combo"
+| "Shortcut"
+| "Hold"
+| "Charge"
+| "DoubleTap"
+| "Mash"
+| "LongPress"
+| "Gesture"
 
 export type Platform = "Console" | "Mobile" | "Computer"
 
@@ -55,7 +55,7 @@ Enums.State = {
 	Conflicted = "Conflicted",
 	Enabled = "Enabled",
 	Disabled = "Disabled",
-} :: { [string]: State }
+}
 
 Enums.Mode = {
 	Button = "Button",
@@ -68,24 +68,23 @@ Enums.Mode = {
 	Mash = "Mash",
 	LongPress = "LongPress",
 	Gesture = "Gesture",
-} :: { [string]: Mode }
-
+}
 Enums.Platform = {
 	Console = "Console",
 	Mobile = "Mobile",
 	Computer = "Computer",
-} :: { [string]: Platform }
+}
 
 Enums.Poll = {
 	Idle = "Idle",
 	Active = "Active",
 	Held = "Held",
-} :: { [string]: Poll }
+}
 
 Enums.Driver = {
 	IAS = "IAS",
 	CAS = "CAS",
 	UIS = "UIS",
-} :: { [string]: Driver }
+}
 
 return Enums

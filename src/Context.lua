@@ -2,21 +2,11 @@
 -- Context.lua
 -- Plinko Labs
 
-type ContextOptions = {
-	Priority:  number?,
-	Sink:      boolean?,
-	Exclusive: boolean?,
-}
-
-type ContextEntry = {
-	Name:     string,
-	Priority: number,
-	Sink:     boolean,
-}
+local Types = require(script.Parent.Types)
 
 local Context = {}
 
-local _stack: { ContextEntry } = {}
+local _stack: { Types.ContextEntry } = {}
 local _callbacks: {
 	Push:    { (name: string) -> () },
 	Pop:     { (name: string) -> () },
@@ -48,7 +38,7 @@ local function _sortStack()
 	end)
 end
 
-function Context.Push(name: string, options: ContextOptions?)
+function Context.Push(name: string, options: Types.ContextOptions?)
 	assert(typeof(name) == "string", "[MaterialPaint.Context] Push expects a string")
 
 	local opts = options or {}
@@ -130,7 +120,7 @@ function Context.Clear()
 	_notifyChanged()
 end
 
-function Context.Snapshot(): { ContextEntry }
+function Context.Snapshot(): { Types.ContextEntry }
 	local snap = {}
 	for _, entry in _stack do
 		table.insert(snap, table.clone(entry))
@@ -138,7 +128,7 @@ function Context.Snapshot(): { ContextEntry }
 	return snap
 end
 
-function Context.Restore(snapshot: { ContextEntry })
+function Context.Restore(snapshot: { Types.ContextEntry })
 	table.clear(_stack)
 	for _, entry in snapshot do
 		table.insert(_stack, table.clone(entry))

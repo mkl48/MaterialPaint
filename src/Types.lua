@@ -5,12 +5,12 @@
 export type Platform = "Console" | "Mobile" | "Computer"
 
 export type Mode = "Button" | "Axis" | "Combo" | "Shortcut"
-	| "Hold" | "Charge" | "DoubleTap" | "Mash" | "LongPress" | "Gesture"
+| "Hold" | "Charge" | "DoubleTap" | "Mash" | "LongPress" | "Gesture"
 
 export type State = "Pressed" | "Released" | "Held" | "Changed"
-	| "Triggered" | "Canceled" | "Charged" | "Stepped" | "Moved"
-	| "DoubleTapped" | "LongPressed" | "Mashed" | "Conflicted"
-	| "Enabled" | "Disabled"
+| "Triggered" | "Canceled" | "Charged" | "Stepped" | "Moved"
+| "DoubleTapped" | "LongPressed" | "Mashed" | "Conflicted"
+| "Enabled" | "Disabled"
 
 export type PollState = "Idle" | "Active" | "Held"
 
@@ -51,11 +51,30 @@ export type ActionConfig = {
 	Tags:           { string }?,
 }
 
+export type ContextOptions = {
+	Priority:  number?,
+	Sink:      boolean?,
+	Exclusive: boolean?,
+}
+
+export type ContextEntry = {
+	Name:     string,
+	Priority: number,
+	Sink:     boolean,
+}
+
+export type MergedHandle = {
+	Next:     (self: MergedHandle, state: State) -> Connection,
+	Poll:     (self: MergedHandle) -> PollState,
+	IsHeld:   (self: MergedHandle) -> boolean,
+	Destroy:  (self: MergedHandle) -> (),
+}
+
 export type Connection = {
-	Then:    (self: Connection, cb: (any) -> any) -> Connection,
-	Catch:   (self: Connection, cb: (any) -> ()) -> Connection,
+	Then:    (self: Connection, cb: (InputEvent) -> any) -> Connection,
+	Catch:   (self: Connection, cb: (string) -> ()) -> Connection,
 	Once:    (self: Connection) -> Connection,
-	Await:   (self: Connection) -> (boolean, any),
+	Await:   (self: Connection) -> (boolean, InputEvent?),
 	Destroy: (self: Connection) -> (),
 }
 

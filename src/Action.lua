@@ -9,6 +9,7 @@ local RunService           = game:GetService("RunService")
 local Enums      = require(script.Parent.Enums)
 local Context    = require(script.Parent.Context)
 local Connection = require(script.Parent.Connection).Connection
+local Types      = require(script.Parent.Types)
 
 local Action = {}
 Action.__index = Action
@@ -325,6 +326,7 @@ function Action:_HandleReleased(source)
 		if self._holdTimer then
 			task.cancel(self._holdTimer)
 			self._holdTimer = nil
+			-- released before hold completed
 			self:_SetState(Enums.State.Canceled, true)
 			local cancelEvent = _makeEvent(source, Enums.State.Canceled)
 			self:_Fire(Enums.State.Canceled, cancelEvent)
@@ -514,6 +516,7 @@ function Action:_HandleComboStep(source)
 		self:_Fire(Enums.State.Canceled, cancelEvent)
 		task.delay(0, function() self:_SetState(Enums.State.Canceled, nil) end)
 
+		-- restart from step 1 if this key matches the first in sequence
 		if sequence[1] == source then
 			self._comboStep = 1
 			self:_SetState(Enums.State.Stepped, 1)
@@ -576,7 +579,7 @@ function Action:_StartLongPress(source)
 	end)
 end
 
-function Action:Next(state)
+function Action:Next(state: Types.State): Types.Connection
 	return Connection.new(function(fire)
 		local listeners = self._signals[state]
 		local entry     = { fire = fire }
@@ -589,7 +592,7 @@ function Action:Next(state)
 	end)
 end
 
-function Action:HoldFor(seconds)
+function Action:HoldFor(seconds: number): Types.Connection
 	return Connection.new(function(fire)
 		local timer        = nil
 		local releaseEntry = nil
@@ -669,15 +672,15 @@ function Action:Is(state)
 	return _result(value, data)
 end
 
-function Action:Poll()
+function Action:Poll(): Types.PollState
 	return self._pollState
 end
 
-function Action:IsHeld()
+function Action:IsHeld(): boolean
 	return self._held
 end
 
-function Action:HeldDuration()
+function Action:HeldDuration(): number
 	if not self._heldStart then return 0 end
 	return os.clock() - self._heldStart
 end

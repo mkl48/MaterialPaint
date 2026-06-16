@@ -2,7 +2,7 @@
 	<Meta name="ExplicitAutoJoints">true</Meta>
 	<External>null</External>
 	<External>nil</External>
-	<Item class="ModuleScript" referent="RBX4A7075DF8C1745EDB627C0052A70F6B7">
+	<Item class="ModuleScript" referent="RBX9CEADB81C2D943F1A155D549264C2176">
 		<Properties>
 			<Content name="LinkedSource"><null></null></Content>
 			<ProtectedString name="Source"><![CDATA[local Enums    = require(script.Enums)
@@ -16,23 +16,23 @@ local MaterialPaint = {}
 MaterialPaint.Enums    = Enums
 MaterialPaint.Platform = Platform
 
-function MaterialPaint.Define(name: string, config: any)
+function MaterialPaint.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
 	return Registry.Define(name, config)
 end
 
-function MaterialPaint.Fetch(name: string)
+function MaterialPaint.Fetch(name: string): Types.ActionHandle?
 	return Registry.Fetch(name)
 end
 
-function MaterialPaint.Fork(name: string, newName: string, overrides: any?)
+function MaterialPaint.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
 	return Registry.Fork(name, newName, overrides)
 end
 
-function MaterialPaint.Merge(...)
+function MaterialPaint.Merge(...: Types.ActionHandle): Types.MergedHandle
 	return Registry.Merge(...)
 end
 
-function MaterialPaint.Poll(name: string)
+function MaterialPaint.Poll(name: string): Types.PollState
 	local action = Registry.Fetch(name)
 	assert(action, "[MaterialPaint] Poll: action '" .. name .. "' does not exist")
 	return action:Poll()
@@ -46,11 +46,11 @@ function MaterialPaint.Clear()
 	Registry.Clear()
 end
 
-function MaterialPaint.GetByTag(tag: string)
+function MaterialPaint.GetByTag(tag: string): { Types.ActionHandle }
 	return Registry.GetByTag(tag)
 end
 
-function MaterialPaint.PushContext(name: string, options: any?)
+function MaterialPaint.PushContext(name: string, options: Types.ContextOptions?)
 	Context.Push(name, options)
 end
 
@@ -74,11 +74,11 @@ function MaterialPaint.ClearContext()
 	Context.Clear()
 end
 
-function MaterialPaint.SnapshotContext()
+function MaterialPaint.SnapshotContext(): { Types.ContextEntry }
 	return Context.Snapshot()
 end
 
-function MaterialPaint.RestoreContext(snapshot: any)
+function MaterialPaint.RestoreContext(snapshot: { Types.ContextEntry })
 	Context.Restore(snapshot)
 end
 
@@ -103,7 +103,7 @@ return MaterialPaint]]></ProtectedString>
 			<int64 name="SourceAssetId">-1</int64>
 			<BinaryString name="Tags"></BinaryString>
 		</Properties>
-		<Item class="ModuleScript" referent="RBXBD8BAD9C1AA44027B8A0AB1C98334CED">
+		<Item class="ModuleScript" referent="RBX2FF36FA6DD644E68A70074013BCA5596">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
@@ -117,6 +117,7 @@ local RunService           = game:GetService("RunService")
 local Enums      = require(script.Parent.Enums)
 local Context    = require(script.Parent.Context)
 local Connection = require(script.Parent.Connection).Connection
+local Types      = require(script.Parent.Types)
 
 local Action = {}
 Action.__index = Action
@@ -686,7 +687,7 @@ function Action:_StartLongPress(source)
 	end)
 end
 
-function Action:Next(state)
+function Action:Next(state: Types.State): Types.Connection
 	return Connection.new(function(fire)
 		local listeners = self._signals[state]
 		local entry     = { fire = fire }
@@ -699,7 +700,7 @@ function Action:Next(state)
 	end)
 end
 
-function Action:HoldFor(seconds)
+function Action:HoldFor(seconds: number): Types.Connection
 	return Connection.new(function(fire)
 		local timer        = nil
 		local releaseEntry = nil
@@ -779,15 +780,15 @@ function Action:Is(state)
 	return _result(value, data)
 end
 
-function Action:Poll()
+function Action:Poll(): Types.PollState
 	return self._pollState
 end
 
-function Action:IsHeld()
+function Action:IsHeld(): boolean
 	return self._held
 end
 
-function Action:HeldDuration()
+function Action:HeldDuration(): number
 	if not self._heldStart then return 0 end
 	return os.clock() - self._heldStart
 end
@@ -844,7 +845,7 @@ return Action]]></ProtectedString>
 				<int64 name="SourceAssetId">-1</int64>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
-			<Item class="Folder" referent="RBX3469E85C258E4A6C8084797D4505A187">
+			<Item class="Folder" referent="RBX988F4944B97D49B78A89C1A8DDE8B7DB">
 				<Properties>
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -855,7 +856,7 @@ return Action]]></ProtectedString>
 				</Properties>
 			</Item>
 		</Item>
-		<Item class="ModuleScript" referent="RBX231E290121004C81BB4AFC159DCDE12A">
+		<Item class="ModuleScript" referent="RBXA43D2C3031A54572AA9969C0E9717DD2">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
@@ -941,7 +942,7 @@ return Platform]]></ProtectedString>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBX1612A20A5A4044A9ABAA7EF7B5290025">
+		<Item class="ModuleScript" referent="RBX6A9D795D5E42403D9F8EA36E3DDBD723">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[--[[
@@ -2935,7 +2936,7 @@ return Promise]]></ProtectedString>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBX4D23FD9B2E0E41289D410B30A3E2D794">
+		<Item class="ModuleScript" referent="RBX900C8A3A98554C0FB0DF5BE0F373AC5F">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
@@ -2945,12 +2946,13 @@ return Promise]]></ProtectedString>
 local Enums      = require(script.Parent.Enums)
 local Action     = require(script.Parent.Action)
 local Connection = require(script.Parent.Connection).Connection
+local Types      = require(script.Parent.Types)
 
 local Registry = {}
 
-local _actions: { [string]: any } = {}
+local _actions: { [string]: Types.ActionHandle } = {}
 
-function Registry.Define(name: string, config: any)
+function Registry.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
 	assert(typeof(name) == "string", "[MaterialPaint] Define expects a string name")
 	assert(not _actions[name], "[MaterialPaint] Action '" .. name .. "' is already defined")
 
@@ -2960,11 +2962,11 @@ function Registry.Define(name: string, config: any)
 	return action
 end
 
-function Registry.Fetch(name: string)
+function Registry.Fetch(name: string): Types.ActionHandle?
 	return _actions[name] or nil
 end
 
-function Registry.Fork(name: string, newName: string, overrides: any?)
+function Registry.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
 	local source = _actions[name]
 	assert(source,                "[MaterialPaint] Fork: action '" .. name    .. "' does not exist")
 	assert(not _actions[newName], "[MaterialPaint] Fork: action '" .. newName .. "' already exists")
@@ -2985,13 +2987,13 @@ function Registry.Fork(name: string, newName: string, overrides: any?)
 	return forked
 end
 
-function Registry.Merge(...: any)
+function Registry.Merge(...: Types.ActionHandle): Types.MergedHandle
 	local actions = { ... }
 	assert(#actions >= 2, "[MaterialPaint] Merge expects at least 2 actions")
 
 	local merged = {}
 
-	function merged:Next(state: Enums.State)
+	function merged:Next(state: Types.State)
 		return Connection.new(function(fire)
 			local disconnects = {}
 
@@ -3013,7 +3015,7 @@ function Registry.Merge(...: any)
 		end)
 	end
 
-	function merged:Poll()
+	function merged:Poll(): Types.PollState
 		for _, action in actions do
 			if action:Poll() ~= Enums.Poll.Idle then
 				return action:Poll()
@@ -3053,7 +3055,7 @@ function Registry.Clear()
 	end
 end
 
-function Registry.GetByTag(tag: string)
+function Registry.GetByTag(tag: string): { Types.ActionHandle }
 	local results = {}
 	for _, action in _actions do
 		if action.Config.Tags and table.find(action.Config.Tags, tag) then
@@ -3063,7 +3065,7 @@ function Registry.GetByTag(tag: string)
 	return results
 end
 
-function Registry.All()
+function Registry.All(): { Types.ActionHandle }
 	local results = {}
 	for _, action in _actions do
 		table.insert(results, action)
@@ -3081,7 +3083,7 @@ return Registry]]></ProtectedString>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBXAE42BF0C25364EC4A16DEA986EB73A0D">
+		<Item class="ModuleScript" referent="RBX643267BA92F646BE914FADA00313EDE8">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
@@ -3137,11 +3139,30 @@ export type ActionConfig = {
 	Tags:           { string }?,
 }
 
+export type ContextOptions = {
+	Priority:  number?,
+	Sink:      boolean?,
+	Exclusive: boolean?,
+}
+
+export type ContextEntry = {
+	Name:     string,
+	Priority: number,
+	Sink:     boolean,
+}
+
+export type MergedHandle = {
+	Next:     (self: MergedHandle, state: State) -> Connection,
+	Poll:     (self: MergedHandle) -> PollState,
+	IsHeld:   (self: MergedHandle) -> boolean,
+	Destroy:  (self: MergedHandle) -> (),
+}
+
 export type Connection = {
-	Then:    (self: Connection, cb: (any) -> any) -> Connection,
-	Catch:   (self: Connection, cb: (any) -> ()) -> Connection,
+	Then:    (self: Connection, cb: (InputEvent) -> any) -> Connection,
+	Catch:   (self: Connection, cb: (string) -> ()) -> Connection,
 	Once:    (self: Connection) -> Connection,
-	Await:   (self: Connection) -> (boolean, any),
+	Await:   (self: Connection) -> (boolean, InputEvent?),
 	Destroy: (self: Connection) -> (),
 }
 
@@ -3168,7 +3189,7 @@ return {}]]></ProtectedString>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBX2841BA4E55B342CFB4A5EA588229E0A9">
+		<Item class="ModuleScript" referent="RBX3C2B2798EC88486CA38A83584CF8CA48">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
@@ -3176,19 +3197,20 @@ return {}]]></ProtectedString>
 -- Plinko Labs
 
 local Promise = require(script.Parent.Promise)
+local Types   = require(script.Parent.Types)
 
 export type Connection = {
-	Then:    (self: Connection, cb: (any) -> any) -> Connection,
-	Catch:   (self: Connection, cb: (any) -> ()) -> Connection,
+	Then:    (self: Connection, cb: (Types.InputEvent) -> any) -> Connection,
+	Catch:   (self: Connection, cb: (string) -> ()) -> Connection,
 	Once:    (self: Connection) -> Connection,
-	Await:   (self: Connection) -> (boolean, any),
+	Await:   (self: Connection) -> (boolean, Types.InputEvent?),
 	Destroy: (self: Connection) -> (),
 }
 
 local Connection = {}
 Connection.__index = Connection
 
-function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
+function Connection.new(bindFn: ((Types.InputEvent) -> ()) -> () -> ()): Connection
 	local self       = setmetatable({}, Connection)
 
 	self._cbs        = {}
@@ -3197,7 +3219,7 @@ function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
 	self._destroyed  = false
 	self._disconnect = nil
 
-	self._disconnect = bindFn(function(value: any)
+	self._disconnect = bindFn(function(value: Types.InputEvent)
 		if self._destroyed then return end
 
 		local ok, err = pcall(function()
@@ -3220,13 +3242,13 @@ function Connection.new(bindFn: ((any) -> ()) -> () -> ()): Connection
 	return self
 end
 
-function Connection:Then(cb: (any) -> any): Connection
+function Connection:Then(cb: (Types.InputEvent) -> any): Connection
 	assert(not self._destroyed, "[MaterialPaint] Cannot chain Then on a destroyed connection")
 	table.insert(self._cbs, cb)
 	return self
 end
 
-function Connection:Catch(cb: (any) -> ()): Connection
+function Connection:Catch(cb: (string) -> ()): Connection
 	assert(not self._destroyed, "[MaterialPaint] Cannot chain Catch on a destroyed connection")
 	table.insert(self._errCbs, cb)
 	return self
@@ -3237,7 +3259,7 @@ function Connection:Once(): Connection
 	return self
 end
 
-function Connection:Await(): (boolean, any)
+function Connection:Await(): (boolean, Types.InputEvent?)
 	assert(not self._destroyed, "[MaterialPaint] Cannot Await a destroyed connection")
 	local thread = coroutine.running()
 	local result, success
@@ -3282,28 +3304,18 @@ return {
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBXE6D42A50FD8542A89F62ECFF122391A1">
+		<Item class="ModuleScript" referent="RBX67E002A749EE491791D546D1B0EFD032">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint
 -- Context.lua
 -- Plinko Labs
 
-type ContextOptions = {
-	Priority:  number?,
-	Sink:      boolean?,
-	Exclusive: boolean?,
-}
-
-type ContextEntry = {
-	Name:     string,
-	Priority: number,
-	Sink:     boolean,
-}
+local Types = require(script.Parent.Types)
 
 local Context = {}
 
-local _stack: { ContextEntry } = {}
+local _stack: { Types.ContextEntry } = {}
 local _callbacks: {
 	Push:    { (name: string) -> () },
 	Pop:     { (name: string) -> () },
@@ -3335,7 +3347,7 @@ local function _sortStack()
 	end)
 end
 
-function Context.Push(name: string, options: ContextOptions?)
+function Context.Push(name: string, options: Types.ContextOptions?)
 	assert(typeof(name) == "string", "[MaterialPaint.Context] Push expects a string")
 
 	local opts = options or {}
@@ -3417,7 +3429,7 @@ function Context.Clear()
 	_notifyChanged()
 end
 
-function Context.Snapshot(): { ContextEntry }
+function Context.Snapshot(): { Types.ContextEntry }
 	local snap = {}
 	for _, entry in _stack do
 		table.insert(snap, table.clone(entry))
@@ -3425,7 +3437,7 @@ function Context.Snapshot(): { ContextEntry }
 	return snap
 end
 
-function Context.Restore(snapshot: { ContextEntry })
+function Context.Restore(snapshot: { Types.ContextEntry })
 	table.clear(_stack)
 	for _, entry in snapshot do
 		table.insert(_stack, table.clone(entry))
@@ -3479,7 +3491,7 @@ return Context]]></ProtectedString>
 				<BinaryString name="Tags"></BinaryString>
 			</Properties>
 		</Item>
-		<Item class="ModuleScript" referent="RBX6D7F958B7A9A419B9EB716BCB2867CD9">
+		<Item class="ModuleScript" referent="RBXEA2E22AD16FF44CCA7A2605E23507311">
 			<Properties>
 				<Content name="LinkedSource"><null></null></Content>
 				<ProtectedString name="Source"><![CDATA[-- MaterialPaint

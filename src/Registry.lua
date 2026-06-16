@@ -5,12 +5,13 @@
 local Enums      = require(script.Parent.Enums)
 local Action     = require(script.Parent.Action)
 local Connection = require(script.Parent.Connection).Connection
+local Types      = require(script.Parent.Types)
 
 local Registry = {}
 
-local _actions: { [string]: any } = {}
+local _actions: { [string]: Types.ActionHandle } = {}
 
-function Registry.Define(name: string, config: any)
+function Registry.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
 	assert(typeof(name) == "string", "[MaterialPaint] Define expects a string name")
 	assert(not _actions[name], "[MaterialPaint] Action '" .. name .. "' is already defined")
 
@@ -20,11 +21,11 @@ function Registry.Define(name: string, config: any)
 	return action
 end
 
-function Registry.Fetch(name: string)
+function Registry.Fetch(name: string): Types.ActionHandle?
 	return _actions[name] or nil
 end
 
-function Registry.Fork(name: string, newName: string, overrides: any?)
+function Registry.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
 	local source = _actions[name]
 	assert(source,                "[MaterialPaint] Fork: action '" .. name    .. "' does not exist")
 	assert(not _actions[newName], "[MaterialPaint] Fork: action '" .. newName .. "' already exists")
@@ -45,13 +46,13 @@ function Registry.Fork(name: string, newName: string, overrides: any?)
 	return forked
 end
 
-function Registry.Merge(...: any)
+function Registry.Merge(...: Types.ActionHandle): Types.MergedHandle
 	local actions = { ... }
 	assert(#actions >= 2, "[MaterialPaint] Merge expects at least 2 actions")
 
 	local merged = {}
 
-	function merged:Next(state: Enums.State)
+	function merged:Next(state: Types.State)
 		return Connection.new(function(fire)
 			local disconnects = {}
 
@@ -73,7 +74,7 @@ function Registry.Merge(...: any)
 		end)
 	end
 
-	function merged:Poll()
+	function merged:Poll(): Types.PollState
 		for _, action in actions do
 			if action:Poll() ~= Enums.Poll.Idle then
 				return action:Poll()
@@ -113,7 +114,7 @@ function Registry.Clear()
 	end
 end
 
-function Registry.GetByTag(tag: string)
+function Registry.GetByTag(tag: string): { Types.ActionHandle }
 	local results = {}
 	for _, action in _actions do
 		if action.Config.Tags and table.find(action.Config.Tags, tag) then
@@ -123,7 +124,7 @@ function Registry.GetByTag(tag: string)
 	return results
 end
 
-function Registry.All()
+function Registry.All(): { Types.ActionHandle }
 	local results = {}
 	for _, action in _actions do
 		table.insert(results, action)
