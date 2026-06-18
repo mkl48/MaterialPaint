@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Platform.lua
 -- Plinko Labs
 
@@ -60,7 +60,7 @@ function Platform.IsComputer(): boolean
 end
 
 function Platform.OnChanged(cb: (new: Platform, prev: Platform) -> ()): () -> ()
-	assert(typeof(cb) == "function", "[MaterialPaint.Platform] OnChanged expects a function")
+	assert(typeof(cb) == "function", "[Switch.Platform] OnChanged expects a function")
 	table.insert(_callbacks, cb)
 
 	return function()

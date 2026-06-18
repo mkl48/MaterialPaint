@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Connection.lua
 -- Plinko Labs
 
@@ -49,13 +49,13 @@ function Connection.new(bindFn: ((Types.InputEvent) -> ()) -> () -> ()): Connect
 end
 
 function Connection:Then(cb: (Types.InputEvent) -> any): Connection
-	assert(not self._destroyed, "[MaterialPaint] Cannot chain Then on a destroyed connection")
+	assert(not self._destroyed, "[Switch] Cannot chain Then on a destroyed connection")
 	table.insert(self._cbs, cb)
 	return self
 end
 
 function Connection:Catch(cb: (string) -> ()): Connection
-	assert(not self._destroyed, "[MaterialPaint] Cannot chain Catch on a destroyed connection")
+	assert(not self._destroyed, "[Switch] Cannot chain Catch on a destroyed connection")
 	table.insert(self._errCbs, cb)
 	return self
 end
@@ -66,7 +66,7 @@ function Connection:Once(): Connection
 end
 
 function Connection:Await(): (boolean, Types.InputEvent?)
-	assert(not self._destroyed, "[MaterialPaint] Cannot Await a destroyed connection")
+	assert(not self._destroyed, "[Switch] Cannot Await a destroyed connection")
 	local thread = coroutine.running()
 	local result, success
 

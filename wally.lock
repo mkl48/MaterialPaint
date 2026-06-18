@@ -3,7 +3,7 @@
 registry = "test"
 
 [[package]]
-name = "ker/materialpaint"
+name = "ker/switch"
 version = "0.1.0"
 dependencies = []
 

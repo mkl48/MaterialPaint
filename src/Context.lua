@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Context.lua
 -- Plinko Labs
 
@@ -39,7 +39,7 @@ local function _sortStack()
 end
 
 function Context.Push(name: string, options: Types.ContextOptions?)
-	assert(typeof(name) == "string", "[MaterialPaint.Context] Push expects a string")
+	assert(typeof(name) == "string", "[Switch.Context] Push expects a string")
 
 	local opts = options or {}
 
@@ -146,7 +146,7 @@ function Context.IsActive(contexts: { string }?): boolean
 end
 
 function Context.OnPush(name: string, cb: (name: string) -> ()): () -> ()
-	assert(typeof(cb) == "function", "[MaterialPaint.Context] OnPush expects a function")
+	assert(typeof(cb) == "function", "[Switch.Context] OnPush expects a function")
 	table.insert(_callbacks.Push, cb)
 	return function()
 		local i = table.find(_callbacks.Push, cb)
@@ -155,7 +155,7 @@ function Context.OnPush(name: string, cb: (name: string) -> ()): () -> ()
 end
 
 function Context.OnPop(name: string, cb: (name: string) -> ()): () -> ()
-	assert(typeof(cb) == "function", "[MaterialPaint.Context] OnPop expects a function")
+	assert(typeof(cb) == "function", "[Switch.Context] OnPop expects a function")
 	table.insert(_callbacks.Pop, cb)
 	return function()
 		local i = table.find(_callbacks.Pop, cb)
@@ -164,7 +164,7 @@ function Context.OnPop(name: string, cb: (name: string) -> ()): () -> ()
 end
 
 function Context.OnChanged(cb: (stack: { string }) -> ()): () -> ()
-	assert(typeof(cb) == "function", "[MaterialPaint.Context] OnChanged expects a function")
+	assert(typeof(cb) == "function", "[Switch.Context] OnChanged expects a function")
 	table.insert(_callbacks.Changed, cb)
 	return function()
 		local i = table.find(_callbacks.Changed, cb)

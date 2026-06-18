@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Registry.lua
 -- Plinko Labs
 
@@ -12,8 +12,8 @@ local Registry = {}
 local _actions: { [string]: Types.ActionHandle } = {}
 
 function Registry.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
-	assert(typeof(name) == "string", "[MaterialPaint] Define expects a string name")
-	assert(not _actions[name], "[MaterialPaint] Action '" .. name .. "' is already defined")
+	assert(typeof(name) == "string", "[Switch] Define expects a string name")
+	assert(not _actions[name], "[Switch] Action '" .. name .. "' is already defined")
 
 	local action   = Action.new(name, config)
 	_actions[name] = action
@@ -27,8 +27,8 @@ end
 
 function Registry.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
 	local source = _actions[name]
-	assert(source,                "[MaterialPaint] Fork: action '" .. name    .. "' does not exist")
-	assert(not _actions[newName], "[MaterialPaint] Fork: action '" .. newName .. "' already exists")
+	assert(source,                "[Switch] Fork: action '" .. name    .. "' does not exist")
+	assert(not _actions[newName], "[Switch] Fork: action '" .. newName .. "' already exists")
 
 	local config = {}
 	for k, v in source.Config do
@@ -48,7 +48,7 @@ end
 
 function Registry.Merge(...: Types.ActionHandle): Types.MergedHandle
 	local actions = { ... }
-	assert(#actions >= 2, "[MaterialPaint] Merge expects at least 2 actions")
+	assert(#actions >= 2, "[Switch] Merge expects at least 2 actions")
 
 	local merged = {}
 

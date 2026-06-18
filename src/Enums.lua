@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Enums.lua
 -- Plinko Labs
 

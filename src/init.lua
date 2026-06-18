@@ -4,87 +4,87 @@ local Context  = require(script.Context)
 local Registry = require(script.Registry)
 local Types    = require(script.Types)
 
-local MaterialPaint = {}
+local Switch = {}
 
-MaterialPaint.Enums    = Enums
-MaterialPaint.Platform = Platform
+Switch.Enums    = Enums
+Switch.Platform = Platform
 
-function MaterialPaint.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
+function Switch.Define(name: string, config: Types.ActionConfig): Types.ActionHandle
 	return Registry.Define(name, config)
 end
 
-function MaterialPaint.Fetch(name: string): Types.ActionHandle?
+function Switch.Fetch(name: string): Types.ActionHandle?
 	return Registry.Fetch(name)
 end
 
-function MaterialPaint.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
+function Switch.Fork(name: string, newName: string, overrides: Types.ActionConfig?): Types.ActionHandle
 	return Registry.Fork(name, newName, overrides)
 end
 
-function MaterialPaint.Merge(...: Types.ActionHandle): Types.MergedHandle
+function Switch.Merge(...: Types.ActionHandle): Types.MergedHandle
 	return Registry.Merge(...)
 end
 
-function MaterialPaint.Poll(name: string): Types.PollState
+function Switch.Poll(name: string): Types.PollState
 	local action = Registry.Fetch(name)
-	assert(action, "[MaterialPaint] Poll: action '" .. name .. "' does not exist")
+	assert(action, "[Switch] Poll: action '" .. name .. "' does not exist")
 	return action:Poll()
 end
 
-function MaterialPaint.Remove(name: string)
+function Switch.Remove(name: string)
 	Registry.Remove(name)
 end
 
-function MaterialPaint.Clear()
+function Switch.Clear()
 	Registry.Clear()
 end
 
-function MaterialPaint.GetByTag(tag: string): { Types.ActionHandle }
+function Switch.GetByTag(tag: string): { Types.ActionHandle }
 	return Registry.GetByTag(tag)
 end
 
-function MaterialPaint.PushContext(name: string, options: Types.ContextOptions?)
+function Switch.PushContext(name: string, options: Types.ContextOptions?)
 	Context.Push(name, options)
 end
 
-function MaterialPaint.PopContext(name: string?)
+function Switch.PopContext(name: string?)
 	Context.Pop(name)
 end
 
-function MaterialPaint.PeekContext(): string?
+function Switch.PeekContext(): string?
 	return Context.Peek()
 end
 
-function MaterialPaint.HasContext(name: string): boolean
+function Switch.HasContext(name: string): boolean
 	return Context.Has(name)
 end
 
-function MaterialPaint.ContextStack(): { string }
+function Switch.ContextStack(): { string }
 	return Context.Stack()
 end
 
-function MaterialPaint.ClearContext()
+function Switch.ClearContext()
 	Context.Clear()
 end
 
-function MaterialPaint.SnapshotContext(): { Types.ContextEntry }
+function Switch.SnapshotContext(): { Types.ContextEntry }
 	return Context.Snapshot()
 end
 
-function MaterialPaint.RestoreContext(snapshot: { Types.ContextEntry })
+function Switch.RestoreContext(snapshot: { Types.ContextEntry })
 	Context.Restore(snapshot)
 end
 
-function MaterialPaint.OnContextPush(name: string, cb: (string) -> ()): () -> ()
+function Switch.OnContextPush(name: string, cb: (string) -> ()): () -> ()
 	return Context.OnPush(name, cb)
 end
 
-function MaterialPaint.OnContextPop(name: string, cb: (string) -> ()): () -> ()
+function Switch.OnContextPop(name: string, cb: (string) -> ()): () -> ()
 	return Context.OnPop(name, cb)
 end
 
-function MaterialPaint.OnContextChanged(cb: ({ string }) -> ()): () -> ()
+function Switch.OnContextChanged(cb: ({ string }) -> ()): () -> ()
 	return Context.OnChanged(cb)
 end
 
-return MaterialPaint
+return Switch

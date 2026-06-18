@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Types.lua
 -- Plinko Labs
 

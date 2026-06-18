@@ -3,9 +3,9 @@
 <br />
 <br />
 
-# MaterialPaint
+# Switch
 
-<img src="https://img.shields.io/badge/MaterialPaint-v0.1.0-6C3EF4?style=for-the-badge&logoColor=white" alt="version" />
+<img src="https://img.shields.io/badge/Switch-v0.1.0-6C3EF4?style=for-the-badge&logoColor=white" alt="version" />
 <img src="https://img.shields.io/badge/Luau-Roblox-00A2FF?style=for-the-badge&logoColor=white" alt="luau" />
 <img src="https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge" alt="license" />
 <img src="https://img.shields.io/badge/Status-In%20Development-f59e0b?style=for-the-badge" alt="status" />
@@ -23,7 +23,7 @@
 
 ## Table of Contents
 
-- [Why MaterialPaint](#why-materialpaint)
+- [Why Switch](#why-switch)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Core Concepts](#core-concepts)
@@ -34,7 +34,7 @@
   - [States](#states)
   - [Modes](#modes)
 - [API Reference](#api-reference)
-  - [MaterialPaint](#materialpaint-1)
+  - [Switch](#switch-1)
   - [Action](#action)
   - [Connection](#connection)
   - [Platform](#platform)
@@ -49,11 +49,11 @@
 
 ---
 
-## Why MaterialPaint
+## Why Switch
 
 Input on Roblox is fragmented. You're juggling `InputBegan` walls, scattered boolean flags, no priority system, and zero structure once you cross more than a handful of bindings. The new Input Action System fixes the cross-platform problem but its instance-based API is awkward to drive from code.
 
-MaterialPaint is the layer on top. You define named actions in code, get back a handle, and interact with it through a chainable Promise-based API. The IAS instance tree is created, parented, and managed for you. You never touch it.
+Switch is the layer on top. You define named actions in code, get back a handle, and interact with it through a chainable Promise-based API. The IAS instance tree is created, parented, and managed for you. You never touch it.
 
 Built around four principles:
 
@@ -72,7 +72,7 @@ Add to your `wally.toml`:
 
 ```toml
 [dependencies]
-MaterialPaint = "ker/materialpaint@0.1.0"
+Switch = "ker/switch@0.1.0"
 ```
 
 Then run:
@@ -84,27 +84,27 @@ wally install
 Require from any `LocalScript`:
 
 ```lua
-local Paint = require(game.ReplicatedStorage.Packages.MaterialPaint)
+local Switch = require(game.ReplicatedStorage.Packages.Switch)
 ```
 
 ### Manual
 
-Drop the `MaterialPaint` ModuleScript into `ReplicatedStorage` and require it directly:
+Drop the `Switch` ModuleScript into `ReplicatedStorage` and require it directly:
 
 ```lua
-local Paint = require(game.ReplicatedStorage.MaterialPaint)
+local Switch = require(game.ReplicatedStorage.Switch)
 ```
 
-> **Note:** MaterialPaint is **client-only**. Never require it from a server `Script`.
+> **Note:** Switch is **client-only**. Never require it from a server `Script`.
 ---
 
 ## Quick Start
 
 ```lua
-local Paint = require(game.ReplicatedStorage.MaterialPaint)
-local Enums = Paint.Enums
+local Switch = require(game.ReplicatedStorage.Switch)
+local Enums = Switch.Enums
 
-local Jump = Paint.Define("Jump", {
+local Jump = Switch.Define("Jump", {
     Bindings = { Enum.KeyCode.Space, Enum.KeyCode.ButtonA },
     Contexts = { "Gameplay" },
 })
@@ -114,7 +114,7 @@ Jump:Next(Enums.State.Pressed):Then(function(event)
     print("Jumping!")
 end)
 
-Paint.PushContext("Gameplay")
+Switch.PushContext("Gameplay")
 ```
 
 That's the whole loop. `Define` to register, `:Next` to listen, `:Then` to handle, `PushContext` to activate.
@@ -128,16 +128,16 @@ That's the whole loop. `Define` to register, `:Next` to listen, `:Then` to handl
 An **Action** is a named gameplay mechanic -- "Jump", "Attack", "Sprint" -- bound to one or more hardware inputs. `Define` registers it and returns a handle. You hold onto that handle. It's the only way to interact with the action.
 
 ```lua
-local Sprint = Paint.Define("Sprint", {
+local Sprint = Switch.Define("Sprint", {
     Bindings = { Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3 },
     Contexts = { "Gameplay" },
 })
 ```
 
-Names are unique. `Define` errors if you reuse one. If you need to retrieve a handle elsewhere, use `Paint.Fetch`.
+Names are unique. `Define` errors if you reuse one. If you need to retrieve a handle elsewhere, use `Switch.Fetch`.
 
 ```lua
-local Sprint = Paint.Fetch("Sprint")
+local Sprint = Switch.Fetch("Sprint")
 ```
 
 ### Connections
@@ -166,21 +166,21 @@ end):Once()
 A **Context** is a named string an action belongs to. Push it with `PushContext`, and any action whose `Contexts` array contains that name becomes active. Pop it and they go silent. Stack contexts for layered game state -- "Gameplay" → "Menu" → "Inventory" -- and pop them in reverse to return.
 
 ```lua
-Paint.PushContext("Gameplay")     -- gameplay actions active
+Switch.PushContext("Gameplay")     -- gameplay actions active
 openInventory()
-Paint.PushContext("Inventory")    -- inventory + gameplay actions both active
+Switch.PushContext("Inventory")    -- inventory + gameplay actions both active
 closeInventory()
-Paint.PopContext("Inventory")     -- back to gameplay only
+Switch.PopContext("Inventory")     -- back to gameplay only
 ```
 
 Actions with no `Contexts` always fire regardless of stack state. Useful for global hotkeys.
 
 ### Drivers
 
-MaterialPaint speaks three input backends. The default is **IAS** (Input Action System) -- everything you'd want most of the time. CAS and UIS exist as escape hatches.
+Switch speaks three input backends. The default is **IAS** (Input Action System) -- everything you'd want most of the time. CAS and UIS exist as escape hatches.
 
 ```lua
-Paint.Define("Jump", {
+Switch.Define("Jump", {
     Bindings = { Enum.KeyCode.Space },
     Driver   = Enums.Driver.IAS,    -- default, can omit
 })
@@ -225,29 +225,29 @@ A **Mode** is a behavioral preset on an action. By default actions are `Button` 
 
 ## API Reference
 
-### MaterialPaint
+### Switch
 
 | Function | Description |
 | --- | --- |
-| `Paint.Define(name, config)` | Register a new action, returns a handle |
-| `Paint.Fetch(name)` | Retrieve a handle by name, returns `nil` if missing |
-| `Paint.Fork(name, newName, overrides?)` | Clone an action with optional config overrides |
-| `Paint.Merge(...)` | Combine multiple action handles into one stream |
-| `Paint.Poll(name)` | Get the current `Enums.Poll` state of an action |
-| `Paint.Remove(name)` | Destroy and unregister an action |
-| `Paint.Clear()` | Destroy and unregister every action |
-| `Paint.GetByTag(tag)` | Get all handles with a matching tag |
-| `Paint.PushContext(name, options?)` | Push a context onto the stack |
-| `Paint.PopContext(name?)` | Pop a context by name, or pop the top |
-| `Paint.PeekContext()` | Return the top context name |
-| `Paint.HasContext(name)` | Check if a context is currently active |
-| `Paint.ContextStack()` | Return the full context stack |
-| `Paint.ClearContext()` | Pop every context |
-| `Paint.SnapshotContext()` | Capture the current stack |
-| `Paint.RestoreContext(snapshot)` | Restore a saved stack |
-| `Paint.OnContextPush(name, cb)` | Fire when a context is pushed |
-| `Paint.OnContextPop(name, cb)` | Fire when a context is popped |
-| `Paint.OnContextChanged(cb)` | Fire whenever the stack changes |
+| `Switch.Define(name, config)` | Register a new action, returns a handle |
+| `Switch.Fetch(name)` | Retrieve a handle by name, returns `nil` if missing |
+| `Switch.Fork(name, newName, overrides?)` | Clone an action with optional config overrides |
+| `Switch.Merge(...)` | Combine multiple action handles into one stream |
+| `Switch.Poll(name)` | Get the current `Enums.Poll` state of an action |
+| `Switch.Remove(name)` | Destroy and unregister an action |
+| `Switch.Clear()` | Destroy and unregister every action |
+| `Switch.GetByTag(tag)` | Get all handles with a matching tag |
+| `Switch.PushContext(name, options?)` | Push a context onto the stack |
+| `Switch.PopContext(name?)` | Pop a context by name, or pop the top |
+| `Switch.PeekContext()` | Return the top context name |
+| `Switch.HasContext(name)` | Check if a context is currently active |
+| `Switch.ContextStack()` | Return the full context stack |
+| `Switch.ClearContext()` | Pop every context |
+| `Switch.SnapshotContext()` | Capture the current stack |
+| `Switch.RestoreContext(snapshot)` | Restore a saved stack |
+| `Switch.OnContextPush(name, cb)` | Fire when a context is pushed |
+| `Switch.OnContextPop(name, cb)` | Fire when a context is popped |
+| `Switch.OnContextChanged(cb)` | Fire whenever the stack changes |
 
 ### Action
 
@@ -278,27 +278,27 @@ A **Mode** is a behavioral preset on an action. By default actions are `Button` 
 
 | Method | Description |
 | --- | --- |
-| `Paint.Platform.Get()` | Returns current `Enums.Platform` value |
-| `Paint.Platform.IsConsole()` | True if on console |
-| `Paint.Platform.IsMobile()` | True if on mobile |
-| `Paint.Platform.IsComputer()` | True if on PC |
-| `Paint.Platform.OnChanged(cb)` | Fires on platform switch, returns a disconnect |
+| `Switch.Platform.Get()` | Returns current `Enums.Platform` value |
+| `Switch.Platform.IsConsole()` | True if on console |
+| `Switch.Platform.IsMobile()` | True if on mobile |
+| `Switch.Platform.IsComputer()` | True if on PC |
+| `Switch.Platform.OnChanged(cb)` | Fires on platform switch, returns a disconnect |
 
 ### Enums
 
 ```lua
-Paint.Enums.State    -- Pressed, Released, Held, Changed, Triggered, Canceled,
+Switch.Enums.State    -- Pressed, Released, Held, Changed, Triggered, Canceled,
                      -- Charged, Stepped, Moved, DoubleTapped, LongPressed,
                      -- Mashed, Conflicted, Enabled, Disabled
 
-Paint.Enums.Mode     -- Button, Axis, Combo, Shortcut, Hold, Charge,
+Switch.Enums.Mode     -- Button, Axis, Combo, Shortcut, Hold, Charge,
                      -- DoubleTap, Mash, LongPress, Gesture
 
-Paint.Enums.Platform -- Console, Mobile, Computer
+Switch.Enums.Platform -- Console, Mobile, Computer
 
-Paint.Enums.Poll     -- Idle, Active, Held
+Switch.Enums.Poll     -- Idle, Active, Held
 
-Paint.Enums.Driver   -- IAS, CAS, UIS
+Switch.Enums.Driver   -- IAS, CAS, UIS
 ```
 
 ---
@@ -310,7 +310,7 @@ Paint.Enums.Driver   -- IAS, CAS, UIS
 The standard mode -- fires `Pressed` and `Released`. Use for jumps, attacks, single-press abilities.
 
 ```lua
-local Jump = Paint.Define("Jump", {
+local Jump = Switch.Define("Jump", {
     Bindings = { Enum.KeyCode.Space },
 })
 
@@ -323,7 +323,7 @@ Jump:Next(Enums.State.Released):Then(function() ... end)
 Fires `Triggered` only after the binding has been held for `HoldTime` seconds. Fires `Canceled` if released early.
 
 ```lua
-local Block = Paint.Define("Block", {
+local Block = Switch.Define("Block", {
     Bindings = { Enum.KeyCode.F },
     Mode     = Enums.Mode.Hold,
     HoldTime = 0.5,
@@ -338,7 +338,7 @@ Block:Next(Enums.State.Canceled):Then(function() ... end)
 Fires `Charged` every Heartbeat with a normalized 0-1 `Progress`. On release fires `Triggered` carrying the final progress.
 
 ```lua
-local Bow = Paint.Define("Bow", {
+local Bow = Switch.Define("Bow", {
     Bindings = { Enum.UserInputType.MouseButton1 },
     Mode     = Enums.Mode.Charge,
     HoldTime = 2,
@@ -358,7 +358,7 @@ end)
 Fires `DoubleTapped` when two presses occur within `Window` seconds.
 
 ```lua
-local Dash = Paint.Define("Dash", {
+local Dash = Switch.Define("Dash", {
     Bindings = { Enum.KeyCode.E },
     Mode     = Enums.Mode.DoubleTap,
     Window   = 0.3,
@@ -372,7 +372,7 @@ Dash:Next(Enums.State.DoubleTapped):Then(function() ... end)
 Fires `Stepped` on each valid step in `Sequence`, then `Triggered` when complete. `Canceled` if the wrong key is pressed or the timer expires.
 
 ```lua
-local Hadoken = Paint.Define("Hadoken", {
+local Hadoken = Switch.Define("Hadoken", {
     Mode     = Enums.Mode.Combo,
     Sequence = { Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.J },
     Window   = 0.4,
@@ -390,7 +390,7 @@ Hadoken:Next(Enums.State.Triggered):Then(function() ... end)
 Fires `Mashed` when the binding is pressed `MashThreshold` times within `Window` seconds. Uses a sliding window.
 
 ```lua
-local Struggle = Paint.Define("Struggle", {
+local Struggle = Switch.Define("Struggle", {
     Bindings      = { Enum.KeyCode.Space },
     Mode          = Enums.Mode.Mash,
     MashThreshold = 10,
@@ -407,7 +407,7 @@ end)
 Mobile-first. Fires `LongPressed` after `HoldTime` seconds. `Canceled` if released early.
 
 ```lua
-local Pickup = Paint.Define("Pickup", {
+local Pickup = Switch.Define("Pickup", {
     Bindings = { Enum.KeyCode.E },
     Mode     = Enums.Mode.LongPress,
     HoldTime = 0.6,
@@ -421,7 +421,7 @@ Pickup:Next(Enums.State.LongPressed):Then(function() ... end)
 Same as Button but semantically for keyboard shortcuts like Ctrl+S. Used with the `Modifier` field in a `BindingConfig`.
 
 ```lua
-local Save = Paint.Define("Save", {
+local Save = Switch.Define("Save", {
     Bindings = {
         { KeyCode = Enum.KeyCode.S, Modifier = Enum.KeyCode.LeftControl },
     },
@@ -434,7 +434,7 @@ local Save = Paint.Define("Save", {
 For directional input -- mouse movement, thumbsticks. Fires `Changed` and `Moved` with `Delta` / `Position` data.
 
 ```lua
-local Look = Paint.Define("Look", {
+local Look = Switch.Define("Look", {
     Bindings = { Enum.UserInputType.MouseMovement },
     Mode     = Enums.Mode.Axis,
 })
@@ -463,19 +463,19 @@ end)
 ### Context Switching
 
 ```lua
-Paint.PushContext("Gameplay")
+Switch.PushContext("Gameplay")
 
 openMenu()
-Paint.PushContext("Menu")
+Switch.PushContext("Menu")
 
 closeMenu()
-Paint.PopContext("Menu")
+Switch.PopContext("Menu")
 ```
 
 ### Platform-Adaptive Bindings
 
 ```lua
-local Sprint = Paint.Define("Sprint", {
+local Sprint = Switch.Define("Sprint", {
     Contexts = { "Gameplay" },
     Bindings = {
         { KeyCode = Enum.KeyCode.LeftShift, Platforms = { "Computer" } },
@@ -483,7 +483,7 @@ local Sprint = Paint.Define("Sprint", {
     },
 })
 
-Paint.Platform.OnChanged(function(new)
+Switch.Platform.OnChanged(function(new)
     if new == Enums.Platform.Mobile then
         UI:ShowTouchControls()
     end
@@ -495,7 +495,7 @@ end)
 Clone an action under a new name with overrides:
 
 ```lua
-local VehicleJump = Paint.Fork("Jump", "VehicleJump", {
+local VehicleJump = Switch.Fork("Jump", "VehicleJump", {
     Contexts = { "Vehicle" },
 })
 ```
@@ -505,7 +505,7 @@ local VehicleJump = Paint.Fork("Jump", "VehicleJump", {
 Combine multiple actions into one stream. Useful for "any attack" or "any direction" listeners:
 
 ```lua
-local AnyAttack = Paint.Merge(LightAttack, HeavyAttack, Special)
+local AnyAttack = Switch.Merge(LightAttack, HeavyAttack, Special)
 
 AnyAttack:Next(Enums.State.Pressed):Then(function(event)
     print("attack came from:", event.Source)
@@ -515,17 +515,17 @@ end)
 ### Tutorial Gating with `:Once()`
 
 ```lua
-Paint.PushContext("Tutorial")
+Switch.PushContext("Tutorial")
 
-local TutorialJump = Paint.Define("TutorialJump", {
+local TutorialJump = Switch.Define("TutorialJump", {
     Bindings = { Enum.KeyCode.Space },
     Contexts = { "Tutorial" },
 })
 
 TutorialJump:Next(Enums.State.Pressed):Then(function()
     UI:HidePrompt()
-    Paint.PopContext("Tutorial")
-    Paint.Remove("TutorialJump")
+    Switch.PopContext("Tutorial")
+    Switch.Remove("TutorialJump")
 end):Once()
 ```
 
@@ -546,12 +546,12 @@ end)
 Save your full context state before a cutscene, restore it after:
 
 ```lua
-local snap = Paint.SnapshotContext()
-Paint.ClearContext()
-Paint.PushContext("Cutscene")
+local snap = Switch.SnapshotContext()
+Switch.ClearContext()
+Switch.PushContext("Cutscene")
 
 playCutscene():andThen(function()
-    Paint.RestoreContext(snap)
+    Switch.RestoreContext(snap)
 end)
 ```
 
@@ -598,10 +598,10 @@ Jump:Set(Enums.State.Released)
 
 ## Cross-Platform
 
-MaterialPaint inherits IAS's cross-platform abstraction. A binding on `Enum.KeyCode.Space` automatically also triggers on `Enum.KeyCode.ButtonA` if both are listed -- no separate listeners required. Filter per-binding with `Platforms` when behavior should differ:
+Switch inherits IAS's cross-platform abstraction. A binding on `Enum.KeyCode.Space` automatically also triggers on `Enum.KeyCode.ButtonA` if both are listed -- no separate listeners required. Filter per-binding with `Platforms` when behavior should differ:
 
 ```lua
-local Run = Paint.Define("Run", {
+local Run = Switch.Define("Run", {
     Bindings = {
         { KeyCode = Enum.KeyCode.LeftShift, Platforms = { "Computer" } },
         { KeyCode = Enum.KeyCode.ButtonL3,  Platforms = { "Console"  } },
@@ -612,7 +612,7 @@ local Run = Paint.Define("Run", {
 Reactively respond to platform switches:
 
 ```lua
-Paint.Platform.OnChanged(function(new, prev)
+Switch.Platform.OnChanged(function(new, prev)
     print("switched from", prev, "to", new)
 end)
 ```
@@ -621,10 +621,10 @@ end)
 
 ## Tips & Gotchas
 
-- **Client only.** MaterialPaint will error if required from a server `Script`. IAS doesn't exist server-side.
+- **Client only.** Switch will error if required from a server `Script`. IAS doesn't exist server-side.
 - **Hold your handles.** `Define` returns a handle. Store it. If you lose the reference, use `Fetch(name)`.
 - **Names are unique.** Two `Define` calls with the same name will error. Use `Fork` to clone.
-- **Context first.** An action with `Contexts = { "Gameplay" }` won't fire until you call `Paint.PushContext("Gameplay")`. This trips everyone up at least once.
+- **Context first.** An action with `Contexts = { "Gameplay" }` won't fire until you call `Switch.PushContext("Gameplay")`. This trips everyone up at least once.
 - **Driver choice is irreversible.** You can't switch an action's driver after `Define`. Pick at definition time.
 - **`:Consume()` blocks the rest of the chain.** If you consume the event in one `:Then`, no later subscribers see it. Useful for priority. Easy to forget.
 

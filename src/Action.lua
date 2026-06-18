@@ -1,4 +1,4 @@
--- MaterialPaint
+-- Switch
 -- Action.lua
 -- Plinko Labs
 
